@@ -1,0 +1,25 @@
+services:
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./api:/app
+    depends_on:
+      - postgres
+    environment:
+      - DB_SOURCE=postgresql://url:url@postgres:5432/url_shortner?sslmode=disable
+  postgres:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_USER: url
+      POSTGRES_PASSWORD: url
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+volumes:
+  postgres_data:
