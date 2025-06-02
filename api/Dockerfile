@@ -4,12 +4,15 @@ WORKDIR /app
 # Install Air for live reloading
 RUN go install github.com/air-verse/air@latest
 
+RUN go install github.com/kyleconroy/sqlc/cmd/sqlc@latest
 
 COPY go.sum go.mod ./
 
 RUN go mod download
 
 COPY . .
+
+RUN sqlc generate
 
 EXPOSE 8080
 
