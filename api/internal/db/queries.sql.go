@@ -7,7 +7,48 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
+
+const createOAuthUser = `-- name: CreateOAuthUser :one
+INSERT INTO users (username,email, ip_address, provider, provider_id, image)
+VALUES ($1, $2, $3, $4, $5, $6)
+RETURNING id, username, email, password_hash, ip_address, provider, provider_id, image, created_at, updated_at
+`
+
+type CreateOAuthUserParams struct {
+	Username   string         `json:"username"`
+	Email      string         `json:"email"`
+	IpAddress  string         `json:"ip_address"`
+	Provider   string         `json:"provider"`
+	ProviderID string         `json:"provider_id"`
+	Image      sql.NullString `json:"image"`
+}
+
+func (q *Queries) CreateOAuthUser(ctx context.Context, arg CreateOAuthUserParams) (User, error) {
+	row := q.db.QueryRowContext(ctx, createOAuthUser,
+		arg.Username,
+		arg.Email,
+		arg.IpAddress,
+		arg.Provider,
+		arg.ProviderID,
+		arg.Image,
+	)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.Email,
+		&i.PasswordHash,
+		&i.IpAddress,
+		&i.Provider,
+		&i.ProviderID,
+		&i.Image,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
 
 const createShortURL = `-- name: CreateShortURL :one
 INSERT INTO urls (original_url, short_code, click_count)
@@ -36,7 +77,7 @@ func (q *Queries) CreateShortURL(ctx context.Context, arg CreateShortURLParams) 
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (username, email, password_hash,ip_address)
 VALUES ($1, $2, $3, $4)
-RETURNING id, username, email, password_hash, ip_address, created_at, updated_at
+RETURNING id, username, email, password_hash, ip_address, provider, provider_id, image, created_at, updated_at
 `
 
 type CreateUserParams struct {
@@ -60,6 +101,9 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.Email,
 		&i.PasswordHash,
 		&i.IpAddress,
+		&i.Provider,
+		&i.ProviderID,
+		&i.Image,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -85,7 +129,7 @@ func (q *Queries) GetOriginalURL(ctx context.Context, shortCode string) (Url, er
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, username, email, password_hash, ip_address, created_at, updated_at FROM users WHERE email = $1
+SELECT id, username, email, password_hash, ip_address, provider, provider_id, image, created_at, updated_at FROM users WHERE email = $1
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
@@ -97,6 +141,37 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.Email,
 		&i.PasswordHash,
 		&i.IpAddress,
+		&i.Provider,
+		&i.ProviderID,
+		&i.Image,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getUserByProvider = `-- name: GetUserByProvider :one
+SELECT id, username, email, password_hash, ip_address, provider, provider_id, image, created_at, updated_at FROM users
+WHERE provider = $1 AND provider_id = $2
+`
+
+type GetUserByProviderParams struct {
+	Provider   string `json:"provider"`
+	ProviderID string `json:"provider_id"`
+}
+
+func (q *Queries) GetUserByProvider(ctx context.Context, arg GetUserByProviderParams) (User, error) {
+	row := q.db.QueryRowContext(ctx, getUserByProvider, arg.Provider, arg.ProviderID)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.Email,
+		&i.PasswordHash,
+		&i.IpAddress,
+		&i.Provider,
+		&i.ProviderID,
+		&i.Image,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -104,7 +179,7 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 }
 
 const getUserByUsername = `-- name: GetUserByUsername :one
-SELECT id, username, email, password_hash, ip_address, created_at, updated_at FROM users WHERE username = $1
+SELECT id, username, email, password_hash, ip_address, provider, provider_id, image, created_at, updated_at FROM users WHERE username = $1
 `
 
 func (q *Queries) GetUserByUsername(ctx context.Context, username string) (User, error) {
@@ -116,6 +191,9 @@ func (q *Queries) GetUserByUsername(ctx context.Context, username string) (User,
 		&i.Email,
 		&i.PasswordHash,
 		&i.IpAddress,
+		&i.Provider,
+		&i.ProviderID,
+		&i.Image,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)

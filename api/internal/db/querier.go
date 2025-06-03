@@ -9,10 +9,12 @@ import (
 )
 
 type Querier interface {
+	CreateOAuthUser(ctx context.Context, arg CreateOAuthUserParams) (User, error)
 	CreateShortURL(ctx context.Context, arg CreateShortURLParams) (Url, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	GetOriginalURL(ctx context.Context, shortCode string) (Url, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
+	GetUserByProvider(ctx context.Context, arg GetUserByProviderParams) (User, error)
 	GetUserByUsername(ctx context.Context, username string) (User, error)
 	IncrementClickCount(ctx context.Context, shortCode string) error
 }

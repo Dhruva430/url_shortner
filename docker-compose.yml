@@ -9,8 +9,10 @@ services:
       - ./api:/app
     depends_on:
       - postgres
+    env_file:
+      - ./api/.env
     environment:
-      - DB_SOURCE=postgresql://url:url@postgres:5432/url_shortner?sslmode=disable
+      - DB_SOURCE=postgresql://url:url@postgres:5432/postgres?sslmode=disable
   postgres:
     image: postgres:15
     restart: always

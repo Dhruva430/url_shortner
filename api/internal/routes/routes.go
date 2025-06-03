@@ -3,6 +3,8 @@ package routes
 import (
 	"api/internal/controllers"
 	"api/internal/db"
+	"api/internal/oauth"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
@@ -17,6 +19,57 @@ func SetupRouter(store *db.Queries) *gin.Engine {
 
 	router.POST("/register", authController.Register)
 	router.POST("/login", authController.Login)
-	return r
 
+	router.GET("/auth/:provider", HandleOAuthRedirect)
+	router.GET("/auth/:provider/callback", HandleOAuthCallback)
+	return r
+}
+
+func HandleOAuthRedirect(c *gin.Context) {
+	providerName := c.Param("provider")
+	prov := oauth.Provider(providerName)
+	provider, ok := oauth.GetProvider(oauth.Provider(providerName))
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "unsupported provider"})
+	}
+
+	redirectURL, err := provider.RedirectURL(prov)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate redirect URL"})
+		return
+	}
+	// fmt.Println("Redirect URL:", redirectURL.String())
+	// fmt.Println("Google Client ID from env:", configs.GetGoogleClientID())
+
+	c.Redirect(http.StatusFound, redirectURL.String())
+}
+
+func HandleOAuthCallback(c *gin.Context) {
+	providerName := c.Param("provider")
+	prov := oauth.Provider(providerName)
+	provider, ok := oauth.GetProvider(prov)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "unsupported provider"})
+		return
+	}
+	code := c.Query("code")
+	if code == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "missing code parameter"})
+		return
+	}
+	user, err := provider.Callback(code)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to authenticate with provider"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"provider":     user.Provider,
+		"provider_id":  user.ProviderID,
+		"username":     user.Username,
+		"email":        user.Email,
+		"avatar_url":   user.AvatarURL,
+		"access_token": user.AccessToken,
+		"id_token":     user.IdToken,
+		"message":      "User authenticated successfully",
+	})
 }

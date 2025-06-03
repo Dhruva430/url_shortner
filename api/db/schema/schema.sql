@@ -12,6 +12,11 @@ CREATE TABLE IF NOT EXISTS users(
     email VARCHAR(50) NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,
     ip_address VARCHAR(45) NOT NULL,
+    provider VARCHAR(20) NOT NULL,
+    provider_id VARCHAR(50) NOT NULL,
+    image TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+    
+    CONSTRAINT unique_provider_user UNIQUE (provider, provider_id)
 );

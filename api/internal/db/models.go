@@ -17,11 +17,14 @@ type Url struct {
 }
 
 type User struct {
-	ID           int32        `json:"id"`
-	Username     string       `json:"username"`
-	Email        string       `json:"email"`
-	PasswordHash string       `json:"password_hash"`
-	IpAddress    string       `json:"ip_address"`
-	CreatedAt    sql.NullTime `json:"created_at"`
-	UpdatedAt    sql.NullTime `json:"updated_at"`
+	ID           int32          `json:"id"`
+	Username     string         `json:"username"`
+	Email        string         `json:"email"`
+	PasswordHash string         `json:"password_hash"`
+	IpAddress    string         `json:"ip_address"`
+	Provider     string         `json:"provider"`
+	ProviderID   string         `json:"provider_id"`
+	Image        sql.NullString `json:"image"`
+	CreatedAt    sql.NullTime   `json:"created_at"`
+	UpdatedAt    sql.NullTime   `json:"updated_at"`
 }
