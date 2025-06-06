@@ -15,6 +15,7 @@ type Querier interface {
 	GetOriginalURL(ctx context.Context, shortCode string) (Url, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByProvider(ctx context.Context, arg GetUserByProviderParams) (User, error)
+	GetUserByProviderID(ctx context.Context, arg GetUserByProviderIDParams) (User, error)
 	GetUserByUsername(ctx context.Context, username string) (User, error)
 	IncrementClickCount(ctx context.Context, shortCode string) error
 }

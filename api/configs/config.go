@@ -9,3 +9,6 @@ func GetGoogleClientID() string {
 func GetGoogleClientSecret() string {
 	return os.Getenv("GOOGLE_CLIENT_SECRET")
 }
+func GetJWTSecret() string {
+	return os.Getenv("JWT_SECRET")
+}

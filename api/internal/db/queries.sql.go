@@ -20,8 +20,8 @@ type CreateOAuthUserParams struct {
 	Username   string         `json:"username"`
 	Email      string         `json:"email"`
 	IpAddress  string         `json:"ip_address"`
-	Provider   string         `json:"provider"`
-	ProviderID string         `json:"provider_id"`
+	Provider   sql.NullString `json:"provider"`
+	ProviderID sql.NullString `json:"provider_id"`
 	Image      sql.NullString `json:"image"`
 }
 
@@ -156,12 +156,39 @@ WHERE provider = $1 AND provider_id = $2
 `
 
 type GetUserByProviderParams struct {
-	Provider   string `json:"provider"`
-	ProviderID string `json:"provider_id"`
+	Provider   sql.NullString `json:"provider"`
+	ProviderID sql.NullString `json:"provider_id"`
 }
 
 func (q *Queries) GetUserByProvider(ctx context.Context, arg GetUserByProviderParams) (User, error) {
 	row := q.db.QueryRowContext(ctx, getUserByProvider, arg.Provider, arg.ProviderID)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.Email,
+		&i.PasswordHash,
+		&i.IpAddress,
+		&i.Provider,
+		&i.ProviderID,
+		&i.Image,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getUserByProviderID = `-- name: GetUserByProviderID :one
+SELECT id, username, email, password_hash, ip_address, provider, provider_id, image, created_at, updated_at FROM users WHERE provider = $1 AND provider_id = $2 LIMIT 1
+`
+
+type GetUserByProviderIDParams struct {
+	Provider   sql.NullString `json:"provider"`
+	ProviderID sql.NullString `json:"provider_id"`
+}
+
+func (q *Queries) GetUserByProviderID(ctx context.Context, arg GetUserByProviderIDParams) (User, error) {
+	row := q.db.QueryRowContext(ctx, getUserByProviderID, arg.Provider, arg.ProviderID)
 	var i User
 	err := row.Scan(
 		&i.ID,

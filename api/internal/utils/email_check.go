@@ -2,9 +2,8 @@ package utils
 
 import (
 	"api/internal/db"
+	"context"
 	"regexp"
-
-	"github.com/gin-gonic/gin"
 )
 
 func IsEmail(input string) bool {
@@ -13,7 +12,8 @@ func IsEmail(input string) bool {
 	return re.MatchString(input)
 }
 
-func GetUserByIdentifier(ctx *gin.Context, store *db.Queries, identifier string) (*db.User, error) {
+func GetUserByIdentifier(ctx context.Context, store *db.Queries, identifier string) (*db.User, error) {
+
 	if IsEmail(identifier) {
 		user, err := store.GetUserByEmail(ctx, identifier)
 		if err != nil {

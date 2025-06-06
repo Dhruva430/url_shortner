@@ -3,25 +3,41 @@ package routes
 import (
 	"api/internal/controllers"
 	"api/internal/db"
+	"api/internal/middleware"
 	"api/internal/oauth"
+	"database/sql"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
 
-func SetupRouter(store *db.Queries) *gin.Engine {
+func SetupRouter(store *db.Queries, conn *sql.DB) *gin.Engine {
 
 	r := gin.Default()
 
-	authController := controllers.NewAuthController(store)
+	authController := controllers.NewAuthController(store, conn)
 
 	router := r.Group("/api")
 
 	router.POST("/register", authController.Register)
 	router.POST("/login", authController.Login)
+	router.GET("/logout", authController.Logout)
 
 	router.GET("/auth/:provider", HandleOAuthRedirect)
 	router.GET("/auth/:provider/callback", HandleOAuthCallback)
+
+	protected := router.Group("/protected")
+	protected.Use(middleware.JWTAuthMiddleware())
+	protected.GET("/user", func(c *gin.Context) {
+		username, exists := c.Get("username")
+		if !exists {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"username": username})
+
+	})
+
 	return r
 }
 

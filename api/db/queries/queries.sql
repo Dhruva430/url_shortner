@@ -32,3 +32,6 @@ INSERT INTO users (username,email, ip_address, provider, provider_id, image)
 VALUES ($1, $2, $3, $4, $5, $6)
 RETURNING *;
 
+-- name: GetUserByProviderID :one
+SELECT * FROM users WHERE provider = $1 AND provider_id = $2 LIMIT 1;
+

@@ -56,7 +56,7 @@ func main() {
 	conn := connectDB()
 
 	store := db.New(conn)
-	r := routes.SetupRouter(store)
+	r := routes.SetupRouter(store, conn)
 
 	startServer(r)
 }

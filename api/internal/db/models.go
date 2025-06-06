@@ -22,8 +22,8 @@ type User struct {
 	Email        string         `json:"email"`
 	PasswordHash string         `json:"password_hash"`
 	IpAddress    string         `json:"ip_address"`
-	Provider     string         `json:"provider"`
-	ProviderID   string         `json:"provider_id"`
+	Provider     sql.NullString `json:"provider"`
+	ProviderID   sql.NullString `json:"provider_id"`
 	Image        sql.NullString `json:"image"`
 	CreatedAt    sql.NullTime   `json:"created_at"`
 	UpdatedAt    sql.NullTime   `json:"updated_at"`
