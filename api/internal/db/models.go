@@ -9,11 +9,12 @@ import (
 )
 
 type Url struct {
-	ID          int32        `json:"id"`
-	OriginalUrl string       `json:"original_url"`
-	ShortCode   string       `json:"short_code"`
-	ClickCount  int32        `json:"click_count"`
-	CreatedAt   sql.NullTime `json:"created_at"`
+	ID          int32         `json:"id"`
+	OriginalUrl string        `json:"original_url"`
+	ShortCode   string        `json:"short_code"`
+	ClickCount  int32         `json:"click_count"`
+	CreatedAt   sql.NullTime  `json:"created_at"`
+	UserID      sql.NullInt32 `json:"user_id"`
 }
 
 type User struct {

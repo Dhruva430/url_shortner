@@ -51,18 +51,19 @@ func (q *Queries) CreateOAuthUser(ctx context.Context, arg CreateOAuthUserParams
 }
 
 const createShortURL = `-- name: CreateShortURL :one
-INSERT INTO urls (original_url, short_code, click_count)
-VALUES ($1, $2, 0)
-RETURNING id, original_url, short_code, click_count, created_at
+INSERT INTO urls (original_url, short_code, user_id, click_count)
+VALUES ($1, $2, $3, 0)
+RETURNING id, original_url, short_code, click_count, created_at, user_id
 `
 
 type CreateShortURLParams struct {
-	OriginalUrl string `json:"original_url"`
-	ShortCode   string `json:"short_code"`
+	OriginalUrl string        `json:"original_url"`
+	ShortCode   string        `json:"short_code"`
+	UserID      sql.NullInt32 `json:"user_id"`
 }
 
 func (q *Queries) CreateShortURL(ctx context.Context, arg CreateShortURLParams) (Url, error) {
-	row := q.db.QueryRowContext(ctx, createShortURL, arg.OriginalUrl, arg.ShortCode)
+	row := q.db.QueryRowContext(ctx, createShortURL, arg.OriginalUrl, arg.ShortCode, arg.UserID)
 	var i Url
 	err := row.Scan(
 		&i.ID,
@@ -70,6 +71,7 @@ func (q *Queries) CreateShortURL(ctx context.Context, arg CreateShortURLParams) 
 		&i.ShortCode,
 		&i.ClickCount,
 		&i.CreatedAt,
+		&i.UserID,
 	)
 	return i, err
 }
@@ -111,7 +113,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 }
 
 const getOriginalURL = `-- name: GetOriginalURL :one
-SELECT id, original_url, short_code, click_count, created_at FROM urls
+SELECT id, original_url, short_code, click_count, created_at, user_id FROM urls
 WHERE short_code = $1
 `
 
@@ -124,6 +126,7 @@ func (q *Queries) GetOriginalURL(ctx context.Context, shortCode string) (Url, er
 		&i.ShortCode,
 		&i.ClickCount,
 		&i.CreatedAt,
+		&i.UserID,
 	)
 	return i, err
 }

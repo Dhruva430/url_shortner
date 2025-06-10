@@ -9,6 +9,7 @@ services:
       - ./api:/app
     depends_on:
       - postgres
+    restart: always
     env_file:
       - ./api/.env
     environment:
@@ -19,6 +20,7 @@ services:
     environment:
       POSTGRES_USER: url
       POSTGRES_PASSWORD: url
+      POSTGRES_HOST_AUTH_METHOD: trust 
     ports:
       - "5432:5432"
     volumes:

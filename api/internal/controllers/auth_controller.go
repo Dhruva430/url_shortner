@@ -34,6 +34,27 @@ func (a *authController) Register(ctx *gin.Context) {
 		return
 	}
 
+	_, err := a.store.GetUserByEmail(ctx, req.Email)
+	if err == nil {
+		ctx.JSON(400, gin.H{"error": "Email is already registered"})
+		return
+	}
+	if err != sql.ErrNoRows {
+		ctx.JSON(500, gin.H{"error": "Internal server error"})
+		return
+	}
+
+	_, err = a.store.GetUserByUsername(ctx, req.Username)
+
+	if err == nil {
+		ctx.JSON(400, gin.H{"error": "Username is already taken"})
+		return
+	}
+	if err != sql.ErrNoRows {
+		ctx.JSON(500, gin.H{"error": "Internal server error"})
+		return
+	}
+
 	if req.Password == "" || req.Username == "" || req.Email == "" {
 		ctx.JSON(400, gin.H{"error": "Credentials is required"})
 		return
@@ -68,6 +89,8 @@ func (a *authController) Register(ctx *gin.Context) {
 			"updated_at": user.UpdatedAt,
 		},
 	})
+	ctx.SetCookie("email", req.Email, 3600*24*10, "/", "", false, false) // 10 days
+
 }
 
 type LoginRequest struct {
@@ -135,7 +158,7 @@ func (a *authController) Login(ctx *gin.Context) {
 		ctx.JSON(500, gin.H{"error": "Failed to commit transaction"})
 		return
 	}
-	ctx.SetCookie("token", token, 20, "/api", "localhost", false, true)
+	ctx.SetCookie("token", token, 3600*24*10, "", "", false, true) // 10 days
 
 	ctx.JSON(200, gin.H{
 		"message": "Login successful",
@@ -153,6 +176,7 @@ func (a *authController) Logout(ctx *gin.Context) {
 		ctx.JSON(401, gin.H{"error": "Not logged in"})
 		return
 	}
-	ctx.SetCookie("token", "", -1, "/", "localhost", false, true)
+
+	ctx.SetCookie("token", "", -1, "", "", false, true)
 	ctx.JSON(200, gin.H{"message": "Logged out successfully"})
 }

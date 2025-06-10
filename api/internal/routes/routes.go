@@ -16,17 +16,19 @@ func SetupRouter(store *db.Queries, conn *sql.DB) *gin.Engine {
 	r := gin.Default()
 
 	authController := controllers.NewAuthController(store, conn)
+	URLController := controllers.NewURLController(store)
 
-	router := r.Group("/api")
+	router := r.Group("/")
+	routerAPI := router.Group("/api")
 
-	router.POST("/register", authController.Register)
-	router.POST("/login", authController.Login)
-	router.GET("/logout", authController.Logout)
+	routerAPI.POST("/register", authController.Register)
+	routerAPI.POST("/login", authController.Login)
+	routerAPI.GET("/logout", authController.Logout)
 
-	router.GET("/auth/:provider", HandleOAuthRedirect)
-	router.GET("/auth/:provider/callback", HandleOAuthCallback)
+	routerAPI.GET("/auth/:provider", HandleOAuthRedirect)
+	routerAPI.GET("/auth/:provider/callback", HandleOAuthCallback)
 
-	protected := router.Group("/protected")
+	protected := routerAPI.Group("/protected")
 	protected.Use(middleware.JWTAuthMiddleware())
 	protected.GET("/user", func(c *gin.Context) {
 		username, exists := c.Get("username")
@@ -38,6 +40,10 @@ func SetupRouter(store *db.Queries, conn *sql.DB) *gin.Engine {
 
 	})
 
+	routerAPI.POST("/shorten", URLController.CreateShortURL)
+
+	router.GET("/s/:shortcode", URLController.RedirectToOriginalURL)
+
 	return r
 }
 
@@ -47,6 +53,7 @@ func HandleOAuthRedirect(c *gin.Context) {
 	provider, ok := oauth.GetProvider(oauth.Provider(providerName))
 	if !ok {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "unsupported provider"})
+		return
 	}
 
 	redirectURL, err := provider.RedirectURL(prov)
