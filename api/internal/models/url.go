@@ -6,4 +6,5 @@ type ShortURL struct {
 type ShortURLRequest struct {
 	OriginalURL string `json:"original_url"`
 	UserID      *int32 `json:"user_id,omitempty"`
+	Shortcode   string `json:"shortcode,omitempty"`
 }

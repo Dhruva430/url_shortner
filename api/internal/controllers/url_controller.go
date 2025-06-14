@@ -26,10 +26,25 @@ func (c *URLController) CreateShortURL(ctx *gin.Context) {
 		return
 	}
 
-	code, err := GetUniqueShortCode(ctx, c.store, 6, 10)
-	if err != nil {
-		ctx.JSON(500, gin.H{"error": "Failed to generate unique shortcode"})
-		return
+	var code string
+	if req.Shortcode != "" {
+		// Check if custom shortcode is already taken
+		_, err := c.store.GetOriginalURL(ctx, req.Shortcode)
+		if err == nil {
+			ctx.JSON(409, gin.H{"error": "Shortcode already taken"})
+			return
+		} else if err != sql.ErrNoRows {
+			ctx.JSON(500, gin.H{"error": "Database error"})
+			return
+		}
+		code = req.Shortcode
+	} else {
+		var err error
+		code, err = GetUniqueShortCode(ctx, c.store, 6, 10)
+		if err != nil {
+			ctx.JSON(500, gin.H{"error": "Failed to generate unique shortcode"})
+			return
+		}
 	}
 
 	arg := db.CreateShortURLParams{
@@ -49,7 +64,7 @@ func (c *URLController) CreateShortURL(ctx *gin.Context) {
 
 	}
 
-	ctx.JSON(200, models.ShortURL{ShortURL: "http://localhost:8080/s/" + url.ShortCode })
+	ctx.JSON(200, models.ShortURL{ShortURL: "http://localhost:8080/s/" + url.ShortCode})
 
 }
 
@@ -80,6 +95,5 @@ func GetUniqueShortCode(ctx *gin.Context, store *db.Queries, length, maxAttempts
 			return "", err
 		}
 		attempts++
-
 	}
 }
