@@ -64,7 +64,7 @@ func (c *URLController) CreateShortURL(ctx *gin.Context) {
 
 	}
 
-	ctx.JSON(200, models.ShortURL{ShortURL: "http://localhost:8080/s/" + url.ShortCode})
+	ctx.JSON(200, models.ShortURLResponse{ShortURL: "http://localhost:8080/s/" + url.ShortCode})
 
 }
 
@@ -96,4 +96,21 @@ func GetUniqueShortCode(ctx *gin.Context, store *db.Queries, length, maxAttempts
 		}
 		attempts++
 	}
+}
+
+func (c *URLController) GetQRCode(ctx *gin.Context) {
+	shortCode := ctx.Param("shortcode")
+	url, err := c.store.GetOriginalURL(ctx, shortCode)
+	if err != nil {
+		ctx.JSON(404, gin.H{"error": "Short URL not found"})
+		return
+	}
+	qrCode, err := utils.GenerateQRCode(url.OriginalUrl, 256)
+	if err != nil {
+		ctx.JSON(500, gin.H{"error": "Failed to generate QR code"})
+		return
+	}
+	ctx.Header("Content-Type", "image/png")
+	// ctx.Data(200, "image/png", qrCode)
+	ctx.Writer.Write(qrCode)
 }

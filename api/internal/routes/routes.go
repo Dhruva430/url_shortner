@@ -41,6 +41,7 @@ func SetupRouter(store *db.Queries, conn *sql.DB) *gin.Engine {
 	})
 
 	routerAPI.POST("/shorten", URLController.CreateShortURL)
+	routerAPI.GET("/shorten/:shortcode/qr", URLController.GetQRCode)
 
 	router.GET("/s/:shortcode", URLController.RedirectToOriginalURL)
 
