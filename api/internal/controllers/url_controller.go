@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"api/configs"
 	"api/internal/db"
 	"api/internal/models"
 	"api/internal/utils"
@@ -113,4 +114,27 @@ func (c *URLController) GetQRCode(ctx *gin.Context) {
 	ctx.Header("Content-Type", "image/png")
 	// ctx.Data(200, "image/png", qrCode)
 	ctx.Writer.Write(qrCode)
+}
+
+func (c *URLController) GetQRCodeWithLogo(ctx *gin.Context) {
+	shortCode := ctx.Param("shortcode")
+	var req models.QRCodeWithLogoRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(400, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	url, err := c.store.GetOriginalURL(ctx, shortCode)
+	if err != nil {
+		ctx.JSON(404, gin.H{"error": "Short URL not found"})
+		return
+	}
+	shortURL := configs.GetAPIURL() + "/s/" + url.ShortCode
+	png, err := utils.GenerateQRCodeWithLogos(shortURL, req.LogoURL, 256)
+	if err != nil {
+		ctx.JSON(500, gin.H{"error": "Failed to generate QR code with logo"})
+		return
+	}
+	ctx.Header("Content-Type", "image/png")
+	ctx.Writer.Write(png)
 }

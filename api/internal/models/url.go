@@ -12,3 +12,8 @@ type QRCodeResponse struct {
 	ShortURL string `json:"short_url"`
 	QRcode   string `json:"qrcode"`
 }
+
+// #TODO: Add user logo link struct ****premium feature****
+type QRCodeWithLogoRequest struct {
+	LogoURL string `json:"logo_url,omitempty"`
+}

@@ -1,4 +1,5 @@
 FROM golang:1.24
+
 WORKDIR /app
 
 # Install Air for live reloading

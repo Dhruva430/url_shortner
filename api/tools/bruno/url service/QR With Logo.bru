@@ -1,0 +1,17 @@
+meta {
+  name: QR With Logo
+  type: http
+  seq: 3
+}
+
+post {
+  url: http://localhost:8080/api/shorten/RDt7bb/qr-with-logo
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "logo_url":"https://static.dezeen.com/uploads/2025/05/sq-google-g-logo-update_dezeen_2364_col_0-852x852.jpg"
+  }
+}

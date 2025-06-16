@@ -12,3 +12,7 @@ func GetGoogleClientSecret() string {
 func GetJWTSecret() string {
 	return os.Getenv("JWT_SECRET")
 }
+
+func GetAPIURL() string {
+	return os.Getenv("API_URL")
+}
