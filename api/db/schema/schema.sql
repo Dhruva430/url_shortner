@@ -21,3 +21,16 @@ CREATE TABLE IF NOT EXISTS urls (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
     user_id INTEGER REFERENCES users(id) ON DELETE SET NULL
 );
+
+CREATE TABLE IF NOT EXISTS url_visits (
+    id SERIAL PRIMARY KEY,
+    url_id INTEGER NOT NULL REFERENCES urls(id) ON DELETE CASCADE,
+    user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    ip_address VARCHAR(45) NOT NULL,
+    user_agent TEXT NOT NULL,
+    referrer TEXT,
+    country VARCHAR(50),
+    region VARCHAR(50),
+    city VARCHAR(50),
+    clicked_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+)

@@ -38,3 +38,15 @@ RETURNING *;
 -- name: GetUserByProviderID :one
 SELECT * FROM users WHERE provider = $1 AND provider_id = $2 LIMIT 1;
 
+
+
+ -- name: LogURLVisit :exec
+INSERT INTO url_visits (
+  url_id, user_id, ip_address, user_agent, referrer, country, region, city
+) VALUES (
+  $1, $2, $3, $4, $5, $6, $7, $8
+);
+
+-- name: GetURLVisits :one
+SELECT * FROM url_visits
+WHERE url_id = $1;
