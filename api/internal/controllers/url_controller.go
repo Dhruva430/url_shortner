@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"api/configs"
 	"api/internal/db"
 	"api/internal/models"
 	"api/internal/utils"
@@ -51,11 +52,7 @@ func (c *URLController) CreateShortURL(ctx *gin.Context) {
 	arg := db.CreateShortURLParams{
 		OriginalUrl: req.OriginalURL,
 		ShortCode:   code,
-	}
-	if req.UserID != nil {
-		arg.UserID = sql.NullInt32{Int32: *req.UserID, Valid: true}
-	} else {
-		arg.UserID = sql.NullInt32{Valid: false}
+		UserID:      sql.NullInt32{Valid: false}, // Assuming no user ID for now, can be modified later
 	}
 
 	url, err := c.store.CreateShortURL(ctx, arg)
@@ -65,7 +62,7 @@ func (c *URLController) CreateShortURL(ctx *gin.Context) {
 
 	}
 
-	ctx.JSON(200, models.ShortURLResponse{ShortURL: "http://localhost:8080/s/" + url.ShortCode})
+	ctx.JSON(200, models.ShortURLResponse{ShortURL: configs.GetAPIURL() + "/s/" + url.ShortCode})
 
 }
 
