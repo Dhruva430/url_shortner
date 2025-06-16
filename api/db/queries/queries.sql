@@ -47,6 +47,24 @@ INSERT INTO url_visits (
   $1, $2, $3, $4, $5, $6, $7, $8
 );
 
--- name: GetURLVisits :one
+-- name: GetURLVisits :many
 SELECT * FROM url_visits
 WHERE url_id = $1;
+
+-- name: GetAnalyticsShortcode :many
+SELECT 
+  u.short_code, 
+  u.original_url, 
+  u.click_count, 
+  v.clicked_at, 
+  v.ip_address, 
+  v.user_agent,
+  v.referrer,
+  v.country,
+  v.region,
+  v.city,
+  u.user_id
+FROM urls u
+JOIN url_visits v ON u.id = v.url_id
+WHERE u.short_code = $1
+ORDER BY v.clicked_at DESC;

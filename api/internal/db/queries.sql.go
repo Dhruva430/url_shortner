@@ -112,6 +112,74 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 	return i, err
 }
 
+const getAnalyticsShortcode = `-- name: GetAnalyticsShortcode :many
+SELECT 
+  u.short_code, 
+  u.original_url, 
+  u.click_count, 
+  v.clicked_at, 
+  v.ip_address, 
+  v.user_agent,
+  v.referrer,
+  v.country,
+  v.region,
+  v.city,
+  u.user_id
+FROM urls u
+JOIN url_visits v ON u.id = v.url_id
+WHERE u.short_code = $1
+ORDER BY v.clicked_at DESC
+`
+
+type GetAnalyticsShortcodeRow struct {
+	ShortCode   string         `json:"short_code"`
+	OriginalUrl string         `json:"original_url"`
+	ClickCount  int32          `json:"click_count"`
+	ClickedAt   sql.NullTime   `json:"clicked_at"`
+	IpAddress   string         `json:"ip_address"`
+	UserAgent   string         `json:"user_agent"`
+	Referrer    sql.NullString `json:"referrer"`
+	Country     sql.NullString `json:"country"`
+	Region      sql.NullString `json:"region"`
+	City        sql.NullString `json:"city"`
+	UserID      sql.NullInt32  `json:"user_id"`
+}
+
+func (q *Queries) GetAnalyticsShortcode(ctx context.Context, shortCode string) ([]GetAnalyticsShortcodeRow, error) {
+	rows, err := q.db.QueryContext(ctx, getAnalyticsShortcode, shortCode)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetAnalyticsShortcodeRow
+	for rows.Next() {
+		var i GetAnalyticsShortcodeRow
+		if err := rows.Scan(
+			&i.ShortCode,
+			&i.OriginalUrl,
+			&i.ClickCount,
+			&i.ClickedAt,
+			&i.IpAddress,
+			&i.UserAgent,
+			&i.Referrer,
+			&i.Country,
+			&i.Region,
+			&i.City,
+			&i.UserID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getOriginalURL = `-- name: GetOriginalURL :one
 SELECT id, original_url, short_code, click_count, created_at, user_id FROM urls
 WHERE short_code = $1
@@ -129,6 +197,45 @@ func (q *Queries) GetOriginalURL(ctx context.Context, shortCode string) (Url, er
 		&i.UserID,
 	)
 	return i, err
+}
+
+const getURLVisits = `-- name: GetURLVisits :many
+SELECT id, url_id, user_id, ip_address, user_agent, referrer, country, region, city, clicked_at FROM url_visits
+WHERE url_id = $1
+`
+
+func (q *Queries) GetURLVisits(ctx context.Context, urlID int32) ([]UrlVisit, error) {
+	rows, err := q.db.QueryContext(ctx, getURLVisits, urlID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []UrlVisit
+	for rows.Next() {
+		var i UrlVisit
+		if err := rows.Scan(
+			&i.ID,
+			&i.UrlID,
+			&i.UserID,
+			&i.IpAddress,
+			&i.UserAgent,
+			&i.Referrer,
+			&i.Country,
+			&i.Region,
+			&i.City,
+			&i.ClickedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one

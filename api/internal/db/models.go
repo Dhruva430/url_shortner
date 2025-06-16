@@ -17,6 +17,19 @@ type Url struct {
 	UserID      sql.NullInt32 `json:"user_id"`
 }
 
+type UrlVisit struct {
+	ID        int32          `json:"id"`
+	UrlID     int32          `json:"url_id"`
+	UserID    sql.NullInt32  `json:"user_id"`
+	IpAddress string         `json:"ip_address"`
+	UserAgent string         `json:"user_agent"`
+	Referrer  sql.NullString `json:"referrer"`
+	Country   sql.NullString `json:"country"`
+	Region    sql.NullString `json:"region"`
+	City      sql.NullString `json:"city"`
+	ClickedAt sql.NullTime   `json:"clicked_at"`
+}
+
 type User struct {
 	ID           int32          `json:"id"`
 	Username     string         `json:"username"`

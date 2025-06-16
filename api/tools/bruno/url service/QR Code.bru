@@ -1,0 +1,18 @@
+meta {
+  name: QR Code
+  type: http
+  seq: 4
+}
+
+post {
+  url: http://localhost:8080/api/shorten/qr
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "original_url": "www.youtube.com",
+    "expiry_days": 0
+  }  
+}
