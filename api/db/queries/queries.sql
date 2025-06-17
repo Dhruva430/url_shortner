@@ -65,6 +65,7 @@ SELECT
   v.city,
   u.user_id
 FROM urls u
-JOIN url_visits v ON u.id = v.url_id
+INNER JOIN url_visits v ON u.id = v.url_id
 WHERE u.short_code = $1
 ORDER BY v.clicked_at DESC;
+
