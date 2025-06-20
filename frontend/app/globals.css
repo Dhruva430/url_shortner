@@ -1,0 +1,14 @@
+/* @import url("https://fonts.googleapis.com/css2?family=Exo:ital,wght@0,100..900;1,100..900&display=swap"); */
+@import "tailwindcss";
+
+:root {
+  font-family: var(--font-exo), sans-serif;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-background: rgb(16, 164, 176);
+  --color-blackShade: rgb(24, 26, 27);
+  --color-darkGreen: #00272a;
+  --color-accent: #0d838d;
+}

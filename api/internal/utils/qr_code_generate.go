@@ -57,7 +57,7 @@ func sscanf(hex string, format string, r, g, b *uint8) (int, error) {
 // #TODO: Implement GenerateQRCodeWithLogos function
 
 func GenerateQRCodeWithLogos(url string, logoPath string, size int, format string, fg, bg color.Color) ([]byte, error) {
-	qr, err := qrcode.New(url, qrcode.High)
+	qr, err := qrcode.New(url, qrcode.Highest)
 	if err != nil {
 		return nil, err
 	}

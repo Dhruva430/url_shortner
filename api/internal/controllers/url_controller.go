@@ -182,7 +182,7 @@ func (c *URLController) GetQRCodeWithLogo(ctx *gin.Context) {
 		return
 	}
 
-	qrBytes, err := utils.GenerateQRCodeWithLogos(req.OriginalURL, req.LogoURL, 256, req.Format, fgColor, bgColor)
+	qrBytes, err := utils.GenerateQRCodeWithLogos(req.OriginalURL, req.LogoURL, 512, req.Format, fgColor, bgColor)
 	if err != nil {
 		ctx.JSON(500, gin.H{"error": "Failed to generate QR code with logo"})
 		return
