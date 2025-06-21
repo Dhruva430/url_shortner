@@ -1,3 +1,4 @@
+"use client";
 import { LinkIcon } from "lucide-react";
 import SignupImage from "@/assets/test.jpg";
 import StarIcon from "@/assets/star.svg";
@@ -6,17 +7,22 @@ import RegisterForm from "@/features/auth/components/registerForm";
 import GoogleIcon from "@/assets/googleIcon.svg";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function Register() {
+  const router = useRouter();
   return (
-    <div className="min-h-screen flex flex-col md:flex-row ">
+    <div className="min-h-screen flex flex-col md:flex-row">
       <div className="flex flex-1 items-center justify-center bg-blackShade">
         <div className="w-98 m-10">
           <div className="p-2 rounded flex items-center justify-center bg-accent mx-auto w-fit my-10">
             <LinkIcon className="size-12" />
           </div>
 
-          <button className="w-full p-4  flex justify-center gap-2 bg-black mt-4 rounded hover:bg-gray-800 transition-colors">
+          <button
+            onClick={() => router.push("http://localhost:8080/api/auth/google")}
+            className="w-full p-4  flex justify-center gap-2 bg-black hover:bg-gray-500 transition-colors rounded mb-4 cursor-pointer"
+          >
             <GoogleIcon className="size-5" />
             Log in with google
           </button>

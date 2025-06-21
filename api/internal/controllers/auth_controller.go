@@ -93,6 +93,26 @@ func (a *authController) Register(ctx *gin.Context) {
 
 }
 
+func (a *authController) CheckUsername(ctx *gin.Context) {
+	username := ctx.Query("username")
+	if username == "" {
+		ctx.JSON(400, gin.H{"error": "Username is required"})
+		return
+	}
+
+	_, err := a.store.GetUserByUsername(ctx, username)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			ctx.JSON(200, gin.H{"available": true})
+			return
+		}
+		ctx.JSON(500, gin.H{"error": "Internal server error"})
+		return
+	}
+
+	ctx.JSON(200, gin.H{"available": false})
+}
+
 type LoginRequest struct {
 	Identifier string `json:"identifier" binding:"required"`
 	Password   string `json:"password" binding:"required"`

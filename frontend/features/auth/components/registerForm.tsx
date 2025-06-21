@@ -32,7 +32,7 @@ export default function RegisterForm() {
     resolver: zodResolver(registerSchema),
   });
 
-  const onSubmit = async (data: any) => {
+  const onSubmit = async (data: z.infer<typeof registerSchema>) => {
     const url = "http://localhost:8080/api/register";
     const { username, email, password } = data;
     try {
@@ -95,7 +95,7 @@ export default function RegisterForm() {
         </label>
         <Input
           {...register("confirmPassword")}
-          type="confirm-password"
+          type="password"
           id="confirm-password"
           placeholder="Enter your password"
         />

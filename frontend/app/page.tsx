@@ -1,11 +1,10 @@
-import Sidebar from "@/components/sidebar";
-import type { ReactNode } from "react";
-
-export default function DashboardLayout({ children }: { children: ReactNode }) {
+export default function HomePage() {
   return (
-    <div className="flex">
-      <Sidebar />
-      <main className="flex-1 p-6 bg-black min-h-screen">{children}</main>
+    <div className="p-4">
+      <h1 className="text-2xl font-semibold">Welcome to Shrinkr 🚀</h1>
+      <p className="text-muted-foreground mt-2">
+        This is your dashboard homepage.
+      </p>
     </div>
   );
 }

@@ -1,14 +1,15 @@
-// import React from "react";
+"use client";
 import { LinkIcon, XIcon } from "lucide-react";
-import Input from "../../components/input";
 import LoginImage from "@/assets/test.jpg";
 import GoogleIcon from "@/assets/googleIcon.svg";
 import LinkIcon2 from "@/assets/linkIcon.svg";
 import Link from "next/link";
 import Image from "next/image";
 import StarIcon from "@/assets/star.svg";
-
+import LoginForm from "@/features/auth/components/loginForm";
+import { useRouter } from "next/navigation";
 export default function Login() {
+  const router = useRouter();
   return (
     <div className="min-h-screen flex flex-col md:flex-row ">
       <div className="flex flex-1 items-center justify-center bg-blackShade">
@@ -22,74 +23,19 @@ export default function Login() {
             Enter to get unlimited access to data & information.
           </p>
 
-          <form className="mt-8">
-            <div className="mb-4">
-              <label className="block text-[18px] mb-2" htmlFor="email">
-                Email
-                <span className="text-red-500"> *</span>
-              </label>
-              <Input type="email" id="email" placeholder="Enter your email" />
-            </div>
-            <div className="mb-4">
-              <label className="block text-[18px] mb-2" htmlFor="password">
-                Password <span className="text-red-500"> *</span>
-              </label>
-              <Input
-                type="password"
-                id="password"
-                placeholder="Enter your password"
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="w-full py-3 bg-accent text-white p-2 rounded hover:bg-[#003135] transition-colors"
-            >
-              Login
-            </button>
-
-            <div className="justify-between flex mt-4">
-              <div className="relative">
-                <div className="flex justify-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="remember-me"
-                    className="sr-only peer"
-                  />
-                  <label
-                    htmlFor="remember-me"
-                    className="size-6 border-2 border-gray-300 bg-white flex justify-center items-center cursor-pointer peer-checked:bg-blue-600 peer-checked:border-blue-600 transition-colors"
-                  >
-                    <XIcon className="size-4 text-black opacity-0 peer-checked:opacity-100 transition-opacity" />
-                  </label>
-                  <label
-                    htmlFor="remember-me"
-                    className="cursor-pointer select-none text-[18px]"
-                  >
-                    Remember Me
-                  </label>
-                </div>
-              </div>
-              {/* #TODO: ADD End boundary */}
-              <Link
-                href={"/forget-password"}
-                className={
-                  "text-blue-600 hover:underline visited:text-purple-600"
-                }
-              >
-                Forget Password
-              </Link>
-            </div>
-          </form>
+          <LoginForm />
 
           <div className="flex items-center gap-2 my-7">
             <span className="h-px w-full block bg-gray-500" />
             <span className="text-gray-400 shrink-0">Or, Login with</span>
             <span className="h-px w-full block bg-gray-500" />
           </div>
-          <button className="w-full p-4  flex justify-center gap-2 bg-black">
+          <button
+            onClick={() => router.push("http://localhost:8080/api/auth/google")}
+            className="w-full p-4  flex justify-center gap-2 bg-black hover:bg-gray-500 transition-colors rounded mb-4 cursor-pointer"
+          >
             <GoogleIcon className="size-5" />
-            Sign up with google
+            Log in with google
           </button>
           <div>
             <div className="flex justify-center gap-4 my-2">

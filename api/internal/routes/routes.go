@@ -5,15 +5,31 @@ import (
 	"api/internal/db"
 	"api/internal/middleware"
 	"api/internal/oauth"
+	"api/internal/utils"
 	"database/sql"
 	"net/http"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
 func SetupRouter(store *db.Queries, conn *sql.DB) *gin.Engine {
 
 	r := gin.Default()
+
+	r.Use(func(c *gin.Context) {
+		c.Set("store", store)
+		c.Set("conn", conn)
+		c.Next()
+	})
+
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:3000"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+	}))
 
 	authController := controllers.NewAuthController(store, conn)
 	URLController := controllers.NewURLController(store)
@@ -24,11 +40,12 @@ func SetupRouter(store *db.Queries, conn *sql.DB) *gin.Engine {
 	routerAPI.POST("/register", authController.Register)
 	routerAPI.POST("/login", authController.Login)
 	routerAPI.GET("/logout", authController.Logout)
+	routerAPI.GET("/check-username", authController.CheckUsername)
 
 	routerAPI.GET("/auth/:provider", HandleOAuthRedirect)
 	routerAPI.GET("/auth/:provider/callback", HandleOAuthCallback)
-
 	protected := routerAPI.Group("/protected")
+
 	protected.Use(middleware.JWTAuthMiddleware())
 	// protected.GET("/user", func(c *gin.Context) {
 	// 	username, exists := c.Get("username")
@@ -49,52 +66,72 @@ func SetupRouter(store *db.Queries, conn *sql.DB) *gin.Engine {
 	return r
 }
 
-func HandleOAuthRedirect(c *gin.Context) {
-	providerName := c.Param("provider")
+func HandleOAuthRedirect(ctx *gin.Context) {
+	providerName := ctx.Param("provider")
 	prov := oauth.Provider(providerName)
 	provider, ok := oauth.GetProvider(oauth.Provider(providerName))
 	if !ok {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "unsupported provider"})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "unsupported provider"})
 		return
 	}
 
 	redirectURL, err := provider.RedirectURL(prov)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate redirect URL"})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate redirect URL"})
 		return
 	}
 	// fmt.Println("Redirect URL:", redirectURL.String())
 	// fmt.Println("Google Client ID from env:", configs.GetGoogleClientID())
 
-	c.Redirect(http.StatusFound, redirectURL.String())
+	ctx.Redirect(http.StatusFound, redirectURL.String())
 }
 
-func HandleOAuthCallback(c *gin.Context) {
-	providerName := c.Param("provider")
+func HandleOAuthCallback(ctx *gin.Context) {
+	providerName := ctx.Param("provider")
 	prov := oauth.Provider(providerName)
 	provider, ok := oauth.GetProvider(prov)
 	if !ok {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "unsupported provider"})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "unsupported provider"})
 		return
 	}
-	code := c.Query("code")
+	code := ctx.Query("code")
 	if code == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "missing code parameter"})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "missing code parameter"})
 		return
 	}
 	user, err := provider.Callback(code)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to authenticate with provider"})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to authenticate with provider"})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{
-		"provider":     user.Provider,
-		"provider_id":  user.ProviderID,
-		"username":     user.Username,
-		"email":        user.Email,
-		"avatar_url":   user.AvatarURL,
-		"access_token": user.AccessToken,
-		"id_token":     user.IdToken,
-		"message":      "User authenticated successfully",
-	})
+	store := ctx.MustGet("store").(*db.Queries)
+
+	dbUser, err := store.GetUserByEmail(ctx, user.Email)
+	if err == sql.ErrNoRows {
+		username := user.Email
+		if user.Username != nil && *user.Username != "" {
+			username = *user.Username
+		}
+		dbUser, err = store.CreateUser(ctx, db.CreateUserParams{
+			Username:     username,
+			PasswordHash: "",
+			Email:        user.Email,
+			IpAddress:    ctx.ClientIP(),
+		})
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
+			return
+		}
+	} else if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch user"})
+		return
+	}
+
+	token, err := utils.GenerateJWT(int64(dbUser.ID), dbUser.Username)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
+		return
+	}
+	redirectURL := "http://localhost:3000/dashboard?token=" + token
+	ctx.Redirect(http.StatusFound, redirectURL)
 }
