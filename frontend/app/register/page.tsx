@@ -1,9 +1,8 @@
 import { LinkIcon } from "lucide-react";
-import Input from "../components/input";
 import SignupImage from "@/assets/test.jpg";
 import StarIcon from "@/assets/star.svg";
 import AddImage from "@/assets/addIcon.svg";
-
+import RegisterForm from "@/features/auth/components/registerForm";
 import GoogleIcon from "@/assets/googleIcon.svg";
 import Image from "next/image";
 import Link from "next/link";
@@ -32,63 +31,7 @@ export default function Register() {
           <p className="text-gray-400 text-center">
             Join Shrinkr to start shortening your URLs today.
           </p>
-          <form className="mt-8">
-            <div className="mb-4">
-              <label className="block text-[18px] mb-2" htmlFor="username">
-                Username<span className="text-red-500"> *</span>
-              </label>
-              <Input
-                type="username"
-                id="username"
-                placeholder="Enter Username"
-              />
-            </div>
-            <div className="mb-4">
-              <label className="block text-[18px] mb-2" htmlFor="email">
-                Email
-                <span className="text-red-500"> *</span>
-              </label>
-              <Input type="email" id="email" placeholder="Enter your email" />
-            </div>
-            <div className="mb-4">
-              <label className="block text-[18px] mb-2" htmlFor="password">
-                Password <span className="text-red-500"> *</span>
-              </label>
-              <Input
-                type="password"
-                id="password"
-                placeholder="Enter your password"
-              />
-            </div>
-
-            <div className="mb-4">
-              <label
-                className="block text-[18px] mb-2"
-                htmlFor="confirm-password"
-              >
-                Confirm Password <span className="text-red-500"> *</span>
-              </label>
-              <Input
-                type="confirm-password"
-                id="confirm-password"
-                placeholder="Enter your password"
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="w-full py-3 bg-accent text-white p-2 rounded hover:bg-[#003135] transition-colors"
-            >
-              Create Account
-            </button>
-
-            <div className="flex flex-col justify-center items-center mt-4 text-[14px] text-gray-400 text-center">
-              <span>
-                By signing up, you agree to our Terms, Privacy Policy and
-                Cookies Policy.
-              </span>
-            </div>
-          </form>
+          <RegisterForm />
           <div>
             <div className="flex justify-center gap-4 my-2">
               <span className="text-gray-400 text-[18px]">

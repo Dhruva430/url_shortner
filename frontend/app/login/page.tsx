@@ -1,6 +1,6 @@
 // import React from "react";
 import { LinkIcon, XIcon } from "lucide-react";
-import Input from "../components/input";
+import Input from "../../components/input";
 import LoginImage from "@/assets/test.jpg";
 import GoogleIcon from "@/assets/googleIcon.svg";
 import LinkIcon2 from "@/assets/linkIcon.svg";
