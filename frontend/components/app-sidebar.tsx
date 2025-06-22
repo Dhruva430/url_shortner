@@ -1,3 +1,4 @@
+"use client";
 import {
   Sidebar,
   SidebarContent,
@@ -27,8 +28,21 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useRouter } from "next/navigation";
 
 export default function AppSidebar() {
+  const router = useRouter();
+  const handleLogout = async () => {
+    try {
+      await fetch("http://localhost:8080/api/logout", {
+        method: "GET",
+        credentials: "include",
+      });
+      router.push("/login");
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
+  };
   const items = [
     {
       href: "/dashboard",
@@ -36,7 +50,7 @@ export default function AppSidebar() {
       label: "Dashboard",
     },
     {
-      href: "/links",
+      href: "/dashboard/links",
       icon: <LinkIcon className="size-5" />,
       label: "Links",
     },
@@ -101,7 +115,9 @@ export default function AppSidebar() {
               >
                 <DropdownMenuItem>Account</DropdownMenuItem>
                 <DropdownMenuItem>Billing</DropdownMenuItem>
-                <DropdownMenuItem>Sign out</DropdownMenuItem>
+                <DropdownMenuItem onClick={handleLogout}>
+                  Sign out
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </SidebarMenuItem>
