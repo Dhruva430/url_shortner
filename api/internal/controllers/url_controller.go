@@ -8,6 +8,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -22,15 +23,15 @@ func NewURLController(store *db.Queries) *URLController {
 }
 
 func (c *URLController) CreateShortURL(ctx *gin.Context) {
+
 	var req models.ShortURLRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(400, gin.H{"error": "Invalid request body"})
+		ctx.Error(err)
 		return
 	}
-
+	fmt.Printf("Trying to parse: '%s'\n", req.ExpireAt)
 	var code string
 	if req.Shortcode != "" {
-		// Check if custom shortcode is already taken
 		_, err := c.store.GetOriginalURL(ctx, req.Shortcode)
 		if err == nil {
 			ctx.JSON(409, gin.H{"error": "Shortcode already taken"})
@@ -49,10 +50,46 @@ func (c *URLController) CreateShortURL(ctx *gin.Context) {
 		}
 	}
 
+	userID, exists := ctx.Get("user_id")
+	if !exists {
+		ctx.JSON(401, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	if req.ExpireAt != nil {
+
+	}
+
+	var passwordHash sql.NullString
+	if req.Password != "" {
+		hash, err := utils.HashPassword(req.Password)
+		if err != nil {
+			ctx.JSON(500, gin.H{"error": "Failed to hash password"})
+			return
+		}
+		passwordHash = sql.NullString{String: hash, Valid: true}
+	} else {
+		passwordHash = sql.NullString{Valid: false}
+	}
+
+	var expireAt sql.NullTime
+	if req.ExpireAt != nil {
+		if req.ExpireAt.Before(time.Now()) {
+			ctx.JSON(400, gin.H{"error": "ExpireAt cannot be before the current time"})
+			return
+		} else {
+			expireAt = sql.NullTime{Valid: false}
+		}
+
+	}
+	fmt.Printf("Parsed expiry date: %v\n", req.ExpireAt)
 	arg := db.CreateShortURLParams{
-		OriginalUrl: req.OriginalURL,
-		ShortCode:   code,
-		UserID:      sql.NullInt32{Valid: false}, // Assuming no user ID for now, can be modified later
+		OriginalUrl:  req.OriginalURL,
+		ShortCode:    code,
+		Title:        sql.NullString{String: req.Title, Valid: req.Title != ""},
+		PasswordHash: passwordHash,
+		ExpireAt:     expireAt,
+		UserID:       sql.NullInt32{Int32: int32(userID.(int64)), Valid: true},
 	}
 
 	url, err := c.store.CreateShortURL(ctx, arg)
@@ -61,7 +98,6 @@ func (c *URLController) CreateShortURL(ctx *gin.Context) {
 		return
 
 	}
-
 	ctx.JSON(200, models.ShortURLResponse{ShortURL: configs.GetAPIURL() + "/s/" + url.ShortCode})
 
 }

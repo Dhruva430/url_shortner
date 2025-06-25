@@ -3,6 +3,7 @@ package main
 import (
 	"api/internal/db"
 	"api/internal/routes"
+	"api/internal/utils"
 	"database/sql"
 	"fmt"
 	"log"
@@ -50,12 +51,18 @@ func connectDB() *sql.DB {
 }
 
 func main() {
+
 	if err := loadEnvVariables(); err != nil {
 		log.Fatal(err)
 	}
 	conn := connectDB()
 
 	store := db.New(conn)
+
+	if err := utils.RegisterValidator(); err != nil {
+		log.Fatalf("Failed to register validator: %v", err)
+	}
+
 	r := routes.SetupRouter(store, conn)
 
 	startServer(r)

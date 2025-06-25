@@ -42,7 +42,7 @@
 }
 
 @theme inline {
-  --color-background: rgb(16, 164, 176);
+  --color-background: var(--background);
   --color-darkBackground: #003135;
   --color-blackShade: rgb(24, 26, 27);
   --color-darkGreen: #00272a;

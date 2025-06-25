@@ -3,6 +3,7 @@ package routes
 import (
 	"api/internal/controllers"
 	"api/internal/db"
+	"api/internal/errors"
 	"api/internal/middleware"
 	"api/internal/oauth"
 	"api/internal/utils"
@@ -16,6 +17,8 @@ import (
 func SetupRouter(store *db.Queries, conn *sql.DB) *gin.Engine {
 
 	r := gin.Default()
+
+	r.Use(errors.GlobalErrorHandler())
 
 	r.Use(func(c *gin.Context) {
 		c.Set("store", store)
@@ -35,6 +38,7 @@ func SetupRouter(store *db.Queries, conn *sql.DB) *gin.Engine {
 	URLController := controllers.NewURLController(store)
 
 	router := r.Group("/")
+
 	routerAPI := router.Group("/api")
 
 	routerAPI.POST("/register", authController.Register)
@@ -44,6 +48,7 @@ func SetupRouter(store *db.Queries, conn *sql.DB) *gin.Engine {
 
 	routerAPI.GET("/auth/:provider", HandleOAuthRedirect)
 	routerAPI.GET("/auth/:provider/callback", HandleOAuthCallback)
+
 	protected := routerAPI.Group("/protected")
 
 	protected.Use(middleware.JWTAuthMiddleware())
@@ -57,10 +62,18 @@ func SetupRouter(store *db.Queries, conn *sql.DB) *gin.Engine {
 
 	// })
 
-	routerAPI.POST("/shorten", URLController.CreateShortURL)
+	protected.POST("/shorten", URLController.CreateShortURL)
 	protected.POST("/shorten/qr", URLController.GetQRCode)
 	protected.POST("/shorten/qr-with-logo", URLController.GetQRCodeWithLogo)
 
+	protected.GET("/me", func(ctx *gin.Context) {
+		userID, _ := ctx.Get("user_id")
+		username, _ := ctx.Get("username")
+		ctx.JSON(200, gin.H{
+			"user_id":  userID,
+			"username": username,
+		})
+	})
 	router.GET("/s/:shortcode", URLController.RedirectToOriginalURL)
 
 	return r

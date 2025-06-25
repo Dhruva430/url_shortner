@@ -1,9 +1,3 @@
--- name: CreateShortURL :one
-INSERT INTO urls (original_url, short_code, user_id, click_count)
-VALUES ($1, $2, $3, 0)
-RETURNING *;
-
-
 -- name: GetOriginalURL :one
 SELECT * FROM urls
 WHERE short_code = $1;
@@ -19,26 +13,30 @@ INSERT INTO users (username, email, password_hash,ip_address)
 VALUES ($1, $2, $3, $4)
 RETURNING *;
 
+-- name: CreateOAuthUser :one
+INSERT INTO users (username,email, ip_address, provider, provider_id, image)
+VALUES ($1, $2, $3, $4, $5, $6)
+RETURNING *;
+
 -- name: GetUserByEmail :one
 SELECT * FROM users WHERE email = $1;
 
 -- name: GetUserByUsername :one
 SELECT * FROM users WHERE username = $1;
 
+
+
 -- name: GetUserByProvider :one
 SELECT * FROM users
 WHERE provider = $1 AND provider_id = $2;
 
--- name: CreateOAuthUser :one
-INSERT INTO users (username,email, ip_address, provider, provider_id, image)
-VALUES ($1, $2, $3, $4, $5, $6)
+-- name: CreateShortURL :one
+INSERT INTO urls (original_url, short_code, title, password_hash, expire_at, user_id, click_count)
+VALUES ($1, $2, $3, $4, $5, $6, 0)
 RETURNING *;
-
 
 -- name: GetUserByProviderID :one
 SELECT * FROM users WHERE provider = $1 AND provider_id = $2 LIMIT 1;
-
-
 
  -- name: LogURLVisit :exec
 INSERT INTO url_visits (

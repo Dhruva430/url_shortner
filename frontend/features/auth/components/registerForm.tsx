@@ -57,7 +57,10 @@ export default function RegisterForm() {
   };
   console.log("render");
   return (
-    <form onSubmit={handleSubmit(onSubmit, handleError)} className="mt-8">
+    <form
+      onSubmit={handleSubmit(onSubmit, handleError)}
+      className="mt-8 text-white"
+    >
       <UsernameInput register={register} errors={errors} control={control} />
       <div className="mb-4">
         <label className="block text-[18px] mb-2" htmlFor="email">
@@ -75,7 +78,7 @@ export default function RegisterForm() {
         )}
       </div>
       <div className="mb-4">
-        <label className="block text-[18px] mb-2" htmlFor="password">
+        <label className="block text-[18px] mb-2 text-white" htmlFor="password">
           Password <span className="text-red-500"> *</span>
         </label>
         <Input
@@ -90,7 +93,7 @@ export default function RegisterForm() {
       </div>
 
       <div className="mb-4">
-        <label className="block text-[18px] mb-2" htmlFor="confirm-password">
+        <label className="block text-[18px] mb-2 " htmlFor="confirm-password">
           Confirm Password <span className="text-red-500"> *</span>
         </label>
         <Input

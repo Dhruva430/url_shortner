@@ -20,7 +20,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={exo.variable}>
-      <body className="bg-background text-foreground antialiased dark">
+      <body className="bg-background text-foreground antialiased">
         {children}
       </body>
     </html>

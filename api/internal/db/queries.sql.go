@@ -51,26 +51,39 @@ func (q *Queries) CreateOAuthUser(ctx context.Context, arg CreateOAuthUserParams
 }
 
 const createShortURL = `-- name: CreateShortURL :one
-INSERT INTO urls (original_url, short_code, user_id, click_count)
-VALUES ($1, $2, $3, 0)
-RETURNING id, original_url, short_code, click_count, created_at, user_id
+INSERT INTO urls (original_url, short_code, title, password_hash, expire_at, user_id, click_count)
+VALUES ($1, $2, $3, $4, $5, $6, 0)
+RETURNING id, original_url, title, short_code, click_count, password_hash, created_at, expire_at, user_id
 `
 
 type CreateShortURLParams struct {
-	OriginalUrl string        `json:"original_url"`
-	ShortCode   string        `json:"short_code"`
-	UserID      sql.NullInt32 `json:"user_id"`
+	OriginalUrl  string         `json:"original_url"`
+	ShortCode    string         `json:"short_code"`
+	Title        sql.NullString `json:"title"`
+	PasswordHash sql.NullString `json:"password_hash"`
+	ExpireAt     sql.NullTime   `json:"expire_at"`
+	UserID       sql.NullInt32  `json:"user_id"`
 }
 
 func (q *Queries) CreateShortURL(ctx context.Context, arg CreateShortURLParams) (Url, error) {
-	row := q.db.QueryRowContext(ctx, createShortURL, arg.OriginalUrl, arg.ShortCode, arg.UserID)
+	row := q.db.QueryRowContext(ctx, createShortURL,
+		arg.OriginalUrl,
+		arg.ShortCode,
+		arg.Title,
+		arg.PasswordHash,
+		arg.ExpireAt,
+		arg.UserID,
+	)
 	var i Url
 	err := row.Scan(
 		&i.ID,
 		&i.OriginalUrl,
+		&i.Title,
 		&i.ShortCode,
 		&i.ClickCount,
+		&i.PasswordHash,
 		&i.CreatedAt,
+		&i.ExpireAt,
 		&i.UserID,
 	)
 	return i, err
@@ -126,7 +139,7 @@ SELECT
   v.city,
   u.user_id
 FROM urls u
-JOIN url_visits v ON u.id = v.url_id
+INNER JOIN url_visits v ON u.id = v.url_id
 WHERE u.short_code = $1
 ORDER BY v.clicked_at DESC
 `
@@ -181,7 +194,7 @@ func (q *Queries) GetAnalyticsShortcode(ctx context.Context, shortCode string) (
 }
 
 const getOriginalURL = `-- name: GetOriginalURL :one
-SELECT id, original_url, short_code, click_count, created_at, user_id FROM urls
+SELECT id, original_url, title, short_code, click_count, password_hash, created_at, expire_at, user_id FROM urls
 WHERE short_code = $1
 `
 
@@ -191,9 +204,12 @@ func (q *Queries) GetOriginalURL(ctx context.Context, shortCode string) (Url, er
 	err := row.Scan(
 		&i.ID,
 		&i.OriginalUrl,
+		&i.Title,
 		&i.ShortCode,
 		&i.ClickCount,
+		&i.PasswordHash,
 		&i.CreatedAt,
+		&i.ExpireAt,
 		&i.UserID,
 	)
 	return i, err

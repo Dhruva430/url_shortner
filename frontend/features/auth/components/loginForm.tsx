@@ -34,6 +34,7 @@ export default function LoginForm() {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include",
         body: JSON.stringify({ identifier, password }),
       });
 
@@ -51,7 +52,10 @@ export default function LoginForm() {
     console.error("Form submission error:", error);
   };
   return (
-    <form className="mt-8" onSubmit={handleSubmit(onSubmit, handleError)}>
+    <form
+      className="mt-8 text-white"
+      onSubmit={handleSubmit(onSubmit, handleError)}
+    >
       <div className="mb-4">
         <label className="block text-[18px] mb-2" htmlFor="email">
           Username/Email

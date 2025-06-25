@@ -16,9 +16,12 @@ CREATE TABLE IF NOT EXISTS users(
 CREATE TABLE IF NOT EXISTS urls (
     id SERIAL PRIMARY KEY,
     original_url TEXT NOT NULL,
+    title TEXT,
     short_code VARCHAR(20) NOT NULL UNIQUE,
     click_count INTEGER NOT NULL DEFAULT 0,
+    password_hash TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+    expire_at TIMESTAMP WITH TIME ZONE,
     user_id INTEGER REFERENCES users(id) ON DELETE SET NULL
 );
 
@@ -33,4 +36,4 @@ CREATE TABLE IF NOT EXISTS url_visits (
     region VARCHAR(50),
     city VARCHAR(50),
     clicked_at TIMESTAMP WITH TIME ZONE DEFAULT now()
-)
+);
