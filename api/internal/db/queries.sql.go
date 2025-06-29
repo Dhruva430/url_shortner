@@ -51,9 +51,9 @@ func (q *Queries) CreateOAuthUser(ctx context.Context, arg CreateOAuthUserParams
 }
 
 const createShortURL = `-- name: CreateShortURL :one
-INSERT INTO urls (original_url, short_code, title, password_hash, expire_at, user_id, click_count)
-VALUES ($1, $2, $3, $4, $5, $6, 0)
-RETURNING id, original_url, title, short_code, click_count, password_hash, created_at, expire_at, user_id
+INSERT INTO urls (original_url, short_code, title, password_hash, expire_at, user_id, thumbnail, click_count)
+VALUES ($1, $2, $3, $4, $5, $6, $7, 0)
+RETURNING id, original_url, title, short_code, thumbnail, click_count, password_hash, created_at, expire_at, user_id
 `
 
 type CreateShortURLParams struct {
@@ -63,6 +63,7 @@ type CreateShortURLParams struct {
 	PasswordHash sql.NullString `json:"password_hash"`
 	ExpireAt     sql.NullTime   `json:"expire_at"`
 	UserID       sql.NullInt32  `json:"user_id"`
+	Thumbnail    sql.NullString `json:"thumbnail"`
 }
 
 func (q *Queries) CreateShortURL(ctx context.Context, arg CreateShortURLParams) (Url, error) {
@@ -73,6 +74,7 @@ func (q *Queries) CreateShortURL(ctx context.Context, arg CreateShortURLParams) 
 		arg.PasswordHash,
 		arg.ExpireAt,
 		arg.UserID,
+		arg.Thumbnail,
 	)
 	var i Url
 	err := row.Scan(
@@ -80,6 +82,7 @@ func (q *Queries) CreateShortURL(ctx context.Context, arg CreateShortURLParams) 
 		&i.OriginalUrl,
 		&i.Title,
 		&i.ShortCode,
+		&i.Thumbnail,
 		&i.ClickCount,
 		&i.PasswordHash,
 		&i.CreatedAt,
@@ -123,6 +126,16 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const deleteURLByShortCode = `-- name: DeleteURLByShortCode :exec
+DELETE FROM urls
+WHERE short_code = $1
+`
+
+func (q *Queries) DeleteURLByShortCode(ctx context.Context, shortCode string) error {
+	_, err := q.db.ExecContext(ctx, deleteURLByShortCode, shortCode)
+	return err
 }
 
 const getAnalyticsShortcode = `-- name: GetAnalyticsShortcode :many
@@ -194,7 +207,7 @@ func (q *Queries) GetAnalyticsShortcode(ctx context.Context, shortCode string) (
 }
 
 const getOriginalURL = `-- name: GetOriginalURL :one
-SELECT id, original_url, title, short_code, click_count, password_hash, created_at, expire_at, user_id FROM urls
+SELECT id, original_url, title, short_code, thumbnail, click_count, password_hash, created_at, expire_at, user_id FROM urls
 WHERE short_code = $1
 `
 
@@ -206,6 +219,7 @@ func (q *Queries) GetOriginalURL(ctx context.Context, shortCode string) (Url, er
 		&i.OriginalUrl,
 		&i.Title,
 		&i.ShortCode,
+		&i.Thumbnail,
 		&i.ClickCount,
 		&i.PasswordHash,
 		&i.CreatedAt,
@@ -240,6 +254,57 @@ func (q *Queries) GetURLVisits(ctx context.Context, urlID int32) ([]UrlVisit, er
 			&i.Region,
 			&i.City,
 			&i.ClickedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getUrlsByUserID = `-- name: GetUrlsByUserID :many
+SELECT 
+  id,
+  original_url,
+  title,
+  short_code,
+  thumbnail,
+  click_count,
+  password_hash,
+  created_at,
+  expire_at,
+  user_id
+FROM urls
+WHERE user_id = $1
+ORDER BY created_at DESC
+`
+
+func (q *Queries) GetUrlsByUserID(ctx context.Context, userID sql.NullInt32) ([]Url, error) {
+	rows, err := q.db.QueryContext(ctx, getUrlsByUserID, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Url
+	for rows.Next() {
+		var i Url
+		if err := rows.Scan(
+			&i.ID,
+			&i.OriginalUrl,
+			&i.Title,
+			&i.ShortCode,
+			&i.Thumbnail,
+			&i.ClickCount,
+			&i.PasswordHash,
+			&i.CreatedAt,
+			&i.ExpireAt,
+			&i.UserID,
 		); err != nil {
 			return nil, err
 		}
@@ -362,4 +427,80 @@ WHERE short_code = $1
 func (q *Queries) IncrementClickCount(ctx context.Context, shortCode string) error {
 	_, err := q.db.ExecContext(ctx, incrementClickCount, shortCode)
 	return err
+}
+
+const logURLVisit = `-- name: LogURLVisit :exec
+INSERT INTO url_visits (
+  url_id, user_id, ip_address, user_agent, referrer, country, region, city
+) VALUES (
+  $1, $2, $3, $4, $5, $6, $7, $8
+)
+`
+
+type LogURLVisitParams struct {
+	UrlID     int32          `json:"url_id"`
+	UserID    sql.NullInt32  `json:"user_id"`
+	IpAddress string         `json:"ip_address"`
+	UserAgent string         `json:"user_agent"`
+	Referrer  sql.NullString `json:"referrer"`
+	Country   sql.NullString `json:"country"`
+	Region    sql.NullString `json:"region"`
+	City      sql.NullString `json:"city"`
+}
+
+func (q *Queries) LogURLVisit(ctx context.Context, arg LogURLVisitParams) error {
+	_, err := q.db.ExecContext(ctx, logURLVisit,
+		arg.UrlID,
+		arg.UserID,
+		arg.IpAddress,
+		arg.UserAgent,
+		arg.Referrer,
+		arg.Country,
+		arg.Region,
+		arg.City,
+	)
+	return err
+}
+
+const updateShortURL = `-- name: UpdateShortURL :one
+UPDATE urls
+SET 
+  original_url = $1,
+  title = $2,
+  expire_at = $3,
+  password_hash = $4
+WHERE short_code = $5
+RETURNING id, original_url, title, short_code, thumbnail, click_count, password_hash, created_at, expire_at, user_id
+`
+
+type UpdateShortURLParams struct {
+	OriginalUrl  string         `json:"original_url"`
+	Title        sql.NullString `json:"title"`
+	ExpireAt     sql.NullTime   `json:"expire_at"`
+	PasswordHash sql.NullString `json:"password_hash"`
+	ShortCode    string         `json:"short_code"`
+}
+
+func (q *Queries) UpdateShortURL(ctx context.Context, arg UpdateShortURLParams) (Url, error) {
+	row := q.db.QueryRowContext(ctx, updateShortURL,
+		arg.OriginalUrl,
+		arg.Title,
+		arg.ExpireAt,
+		arg.PasswordHash,
+		arg.ShortCode,
+	)
+	var i Url
+	err := row.Scan(
+		&i.ID,
+		&i.OriginalUrl,
+		&i.Title,
+		&i.ShortCode,
+		&i.Thumbnail,
+		&i.ClickCount,
+		&i.PasswordHash,
+		&i.CreatedAt,
+		&i.ExpireAt,
+		&i.UserID,
+	)
+	return i, err
 }

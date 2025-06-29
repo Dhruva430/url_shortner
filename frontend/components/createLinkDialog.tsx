@@ -1,20 +1,24 @@
 "use client";
-import React, { useState } from "react";
+import React from "react";
 import { createPortal } from "react-dom";
 import { XIcon } from "lucide-react";
 import CreateLinkForm from "@/features/links/createLinkForm";
+import { LinkData } from "@/features/links/types";
+
 export default function CreateLinkDialog({
   open,
   onOpenChange,
+  onCreateLink,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onCreateLink: (link: LinkData) => void;
 }) {
-  const [password, setPassword] = useState(false);
   if (!open) return null;
+
   return createPortal(
     <div
-      className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 z-50"
+      className="absolute inset-0 flex flex-col items-center justify-center bg-black/85 z-50"
       onClick={() => onOpenChange(false)}
     >
       <div
@@ -23,7 +27,7 @@ export default function CreateLinkDialog({
       >
         <div className="text-black">
           <div className="flex items-center justify-between mb-1">
-            <h2 className="text-xl  font-bold ">Create New Link</h2>
+            <h2 className="text-xl font-bold">Create New Link</h2>
             <XIcon
               className="cursor-pointer"
               onClick={() => onOpenChange(false)}
@@ -33,9 +37,15 @@ export default function CreateLinkDialog({
             Create a shortened link with advanced features
           </p>
         </div>
-        <CreateLinkForm />
+
+        <CreateLinkForm
+          onSuccess={(link) => {
+            onCreateLink(link);
+            onOpenChange(false); // close dialog after success
+          }}
+        />
       </div>
     </div>,
-    typeof window !== "undefined" ? document.body : (null as any)
+    document.body
   );
 }

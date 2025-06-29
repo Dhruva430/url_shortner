@@ -12,7 +12,7 @@ import { useRouter } from "next/navigation";
 export default function Register() {
   const router = useRouter();
   return (
-    <div className="min-h-screen flex flex-col md:flex-row">
+    <div className="min-h-screen flex flex-col md:flex-row text-white">
       <div className="flex flex-1 items-center justify-center bg-blackShade">
         <div className="w-98 m-10">
           <div className="p-2 rounded flex items-center justify-center bg-accent mx-auto w-fit my-10">

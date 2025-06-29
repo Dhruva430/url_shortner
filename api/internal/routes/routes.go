@@ -1,21 +1,21 @@
 package routes
 
 import (
+	"database/sql"
+	"net/http"
+
 	"api/internal/controllers"
 	"api/internal/db"
 	"api/internal/errors"
 	"api/internal/middleware"
 	"api/internal/oauth"
 	"api/internal/utils"
-	"database/sql"
-	"net/http"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
 func SetupRouter(store *db.Queries, conn *sql.DB) *gin.Engine {
-
 	r := gin.Default()
 
 	r.Use(errors.GlobalErrorHandler())
@@ -36,7 +36,7 @@ func SetupRouter(store *db.Queries, conn *sql.DB) *gin.Engine {
 
 	authController := controllers.NewAuthController(store, conn)
 	URLController := controllers.NewURLController(store)
-
+	titleController := controllers.NewTitleController()
 	router := r.Group("/")
 
 	routerAPI := router.Group("/api")
@@ -65,6 +65,10 @@ func SetupRouter(store *db.Queries, conn *sql.DB) *gin.Engine {
 	protected.POST("/shorten", URLController.CreateShortURL)
 	protected.POST("/shorten/qr", URLController.GetQRCode)
 	protected.POST("/shorten/qr-with-logo", URLController.GetQRCodeWithLogo)
+	protected.GET("/links", URLController.GetUserURLs)
+	protected.DELETE("/links/:shortcode", URLController.DeleteShortURL)
+	protected.GET("/title", titleController.GetPageTitle)
+	protected.POST("edit/:shortcode", URLController.UpdateShortURL)
 
 	protected.GET("/me", func(ctx *gin.Context) {
 		userID, _ := ctx.Get("user_id")

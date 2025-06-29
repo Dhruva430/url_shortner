@@ -1,15 +1,17 @@
 package controllers
 
 import (
-	"api/configs"
-	"api/internal/db"
-	"api/internal/models"
-	"api/internal/utils"
 	"context"
 	"database/sql"
 	"errors"
 	"fmt"
+	"net/http"
 	"time"
+
+	"api/configs"
+	"api/internal/db"
+	"api/internal/models"
+	"api/internal/utils"
 
 	"github.com/gin-gonic/gin"
 )
@@ -23,7 +25,6 @@ func NewURLController(store *db.Queries) *URLController {
 }
 
 func (c *URLController) CreateShortURL(ctx *gin.Context) {
-
 	var req models.ShortURLRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.Error(err)
@@ -57,7 +58,6 @@ func (c *URLController) CreateShortURL(ctx *gin.Context) {
 	}
 
 	if req.ExpireAt != nil {
-
 	}
 
 	var passwordHash sql.NullString
@@ -77,11 +77,16 @@ func (c *URLController) CreateShortURL(ctx *gin.Context) {
 		if req.ExpireAt.Before(time.Now()) {
 			ctx.JSON(400, gin.H{"error": "ExpireAt cannot be before the current time"})
 			return
-		} else {
-			expireAt = sql.NullTime{Valid: false}
 		}
-
+		expireAt = sql.NullTime{Time: *req.ExpireAt, Valid: true}
 	}
+	domain, err := utils.GetDomain(req.OriginalURL)
+	if err != nil {
+		ctx.JSON(400, gin.H{"error": "Invalid original URL"})
+		return
+	}
+	thumbnail := "https://www.google.com/s2/favicons?sz=128&domain_url=" + domain
+
 	fmt.Printf("Parsed expiry date: %v\n", req.ExpireAt)
 	arg := db.CreateShortURLParams{
 		OriginalUrl:  req.OriginalURL,
@@ -90,6 +95,7 @@ func (c *URLController) CreateShortURL(ctx *gin.Context) {
 		PasswordHash: passwordHash,
 		ExpireAt:     expireAt,
 		UserID:       sql.NullInt32{Int32: int32(userID.(int64)), Valid: true},
+		Thumbnail:    sql.NullString{String: thumbnail, Valid: true},
 	}
 
 	url, err := c.store.CreateShortURL(ctx, arg)
@@ -98,8 +104,52 @@ func (c *URLController) CreateShortURL(ctx *gin.Context) {
 		return
 
 	}
-	ctx.JSON(200, models.ShortURLResponse{ShortURL: configs.GetAPIURL() + "/s/" + url.ShortCode})
+	formatted := time.Now().Format("02 Jan 2006")
 
+	ctx.JSON(200, models.ShortURLResponse{
+		ShortURL:  configs.GetAPIURL() + "/s/" + url.ShortCode,
+		Thumbnail: utils.GetString(url.Thumbnail),
+		Format:    formatted,
+	})
+}
+
+func (c *URLController) GetUserURLs(ctx *gin.Context) {
+	userID, exists := ctx.Get("user_id")
+	if !exists {
+		ctx.JSON(401, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	links, err := c.store.GetUrlsByUserID(ctx, sql.NullInt32{Int32: int32(userID.(int64)), Valid: true})
+	if err != nil {
+		ctx.JSON(500, gin.H{"error": "Failed to fetch user links"})
+		return
+	}
+
+	var result []models.ShortURLDashboardItem
+
+	for _, link := range links {
+		status := "Active"
+		if link.PasswordHash.Valid {
+			status = "Protected"
+		}
+		if link.ExpireAt.Valid && link.ExpireAt.Time.Before(time.Now()) {
+			status = "Expired"
+		}
+
+		result = append(result, models.ShortURLDashboardItem{
+			ID:          int64(link.ID),
+			Title:       utils.NullToStr(link.Title),
+			OriginalURL: link.OriginalUrl,
+			ShortURL:    configs.GetAPIURL() + "/s/" + link.ShortCode,
+			Thumbnail:   utils.NullToStr(link.Thumbnail),
+			Clicks:      int(link.ClickCount),
+			CreatedAt:   utils.FormatNullTime(link.CreatedAt),
+			Status:      status,
+		})
+	}
+
+	ctx.JSON(200, result)
 }
 
 func (c *URLController) RedirectToOriginalURL(ctx *gin.Context) {
@@ -113,6 +163,23 @@ func (c *URLController) RedirectToOriginalURL(ctx *gin.Context) {
 		_ = c.store.IncrementClickCount(context.Background(), shortCode)
 	}(shortCode)
 	ctx.Redirect(302, url.OriginalUrl)
+}
+
+func (c *URLController) DeleteShortURL(ctx *gin.Context) {
+	shortCode := ctx.Param("shortcode")
+
+	if shortCode == "" {
+		ctx.JSON(400, gin.H{"error": "Shortcode is required"})
+		return
+	}
+
+	err := c.store.DeleteURLByShortCode(ctx, shortCode)
+	if err != nil {
+		ctx.JSON(500, gin.H{"error": "Failed to delete URL"})
+		return
+	}
+
+	ctx.JSON(200, gin.H{"message": "Deleted successfully"})
 }
 
 func GetUniqueShortCode(ctx *gin.Context, store *db.Queries, length, maxAttempts int) (string, error) {
@@ -130,6 +197,53 @@ func GetUniqueShortCode(ctx *gin.Context, store *db.Queries, length, maxAttempts
 		}
 		attempts++
 	}
+}
+
+func (c *URLController) UpdateShortURL(ctx *gin.Context) {
+	shortcode := ctx.Param("shortcode")
+	if shortcode == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "shortcode is required"})
+		return
+	}
+
+	var req models.EditURLRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		return
+	}
+
+	expireAt := sql.NullTime{Valid: false}
+	if req.ExpireAt != "" {
+		t, err := time.Parse(time.RFC3339, req.ExpireAt)
+		if err != nil {
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid expire_at format"})
+			return
+		}
+		expireAt = sql.NullTime{Time: t, Valid: true}
+	}
+
+	if req.Title == "" || req.OriginalURL == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "title and original_url are required"})
+		return
+	}
+
+	args := db.UpdateShortURLParams{
+		ShortCode:   shortcode,
+		OriginalUrl: req.OriginalURL,
+		Title:       sql.NullString{String: req.Title, Valid: true},
+		ExpireAt:    expireAt,
+	}
+
+	updated, err := c.store.UpdateShortURL(ctx, args)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update URL"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"message": "link updated successfully",
+		"data":    updated,
+	})
 }
 
 func (c *URLController) GetQRCode(ctx *gin.Context) {
@@ -164,7 +278,6 @@ func (c *URLController) GetQRCode(ctx *gin.Context) {
 }
 
 func (c *URLController) GetQRCodeWithLogo(ctx *gin.Context) {
-
 	var req models.QRCodeWithLogoRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(400, gin.H{"error": "Invalid request body"})

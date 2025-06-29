@@ -1,5 +1,5 @@
 "use client";
-import { LinkIcon, XIcon } from "lucide-react";
+import { LinkIcon } from "lucide-react";
 import LoginImage from "@/assets/test.jpg";
 import GoogleIcon from "@/assets/googleIcon.svg";
 import LinkIcon2 from "@/assets/linkIcon.svg";

@@ -13,6 +13,7 @@ type Url struct {
 	OriginalUrl  string         `json:"original_url"`
 	Title        sql.NullString `json:"title"`
 	ShortCode    string         `json:"short_code"`
+	Thumbnail    sql.NullString `json:"thumbnail"`
 	ClickCount   int32          `json:"click_count"`
 	PasswordHash sql.NullString `json:"password_hash"`
 	CreatedAt    sql.NullTime   `json:"created_at"`

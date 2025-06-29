@@ -7,6 +7,9 @@ import Switch from "@components/ui/switch";
 import { cn } from "@/lib/utils";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { LinkData } from "@/features/links/types";
+import { useEffect } from "react";
+import { useFetchTitle } from "@/features/auth/hooks/useFetchTitle";
 
 const schema = z.object({
   original_url: z
@@ -21,7 +24,11 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>;
 
-export default function CreateLinkForm() {
+export default function CreateLinkForm({
+  onSuccess,
+}: {
+  onSuccess?: (link: LinkData) => void;
+}) {
   const [password, setPassword] = useState(false);
   const [expiry, setExpiry] = useState(false);
   const {
@@ -30,42 +37,74 @@ export default function CreateLinkForm() {
     watch,
     setValue,
     formState: { errors },
+    getFieldState,
   } = useForm<FormData>({
     resolver: zodResolver(schema),
   });
-
   const expireTime = watch("expire_at");
 
   const onSubmit = async (data: FormData) => {
-    await fetch("http://localhost:8080/api/protected/shorten", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
-    })
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error("Network response was not ok");
+    try {
+      console.log(data);
+      const response = await fetch(
+        "http://localhost:8080/api/protected/shorten",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify(data),
         }
-        return response.json();
-      })
-      .then((data) => {
-        console.log("Success:", data);
-      })
-      .catch((error) => {
-        console.error("Error:", error);
-      });
+      );
+
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
+      }
+
+      const result = await response.json();
+
+      if (onSuccess) {
+        onSuccess({
+          id: result.id || Date.now().toString(),
+          title: result.title || data.title,
+          originalUrl: result.original_url || data.original_url,
+          shortUrl: result.short_url,
+          clicks: 0,
+          createdAt: result.format,
+          status: data.password
+            ? "Protected"
+            : data.expire_at && new Date(data.expire_at) < new Date()
+            ? "Expired"
+            : "Active",
+          thumbnail: result.thumbnail || "https://via.placeholder.com/48",
+        });
+      }
+    } catch (error) {
+      console.error("Error:", error);
+    }
   };
 
+  const originalUrl = watch("original_url");
+  const { title } = useFetchTitle(originalUrl);
+  useEffect(() => {
+    const isTitleDirty = getFieldState("title").isDirty;
+
+    if (!isTitleDirty) {
+      setValue("title", title, { shouldDirty: false });
+    }
+  }, [title, setValue, watch]);
   return (
-    <form className="text-black flex flex-col p-2">
+    <form
+      onSubmit={handleSubmit(onSubmit)}
+      className="text-black flex flex-col p-2"
+    >
       <div className="m-2 grid gap-2">
         <label className="font-medium text-gray-800" htmlFor="original-url">
           Original URL *
         </label>
         <Input
-          type="url"
+          type="text"
           id="original-url"
           placeholder="Enter the original URL"
           required
@@ -75,17 +114,22 @@ export default function CreateLinkForm() {
           <label className="font-medium text-gray-800" htmlFor="title">
             Title *
           </label>
-          <Input type="title" id="title" placeholder="My Website" required />
+          <Input
+            type="text"
+            id="title"
+            placeholder="My Website"
+            required
+            {...register("title")}
+          />
         </div>
         <div>
           <label className="font-medium text-gray-800" htmlFor="custom-slug">
-            Custom slug
+            Shortcode
           </label>
           <Input
-            type="custom-slug"
-            placeholder="Enter a custom slug"
-            required
-            {...register("title")}
+            type="text"
+            placeholder="Enter shortcode"
+            {...register("shortcode")}
           />
         </div>
       </div>
@@ -93,7 +137,7 @@ export default function CreateLinkForm() {
       <div className="flex flex-col gap-4 m-2">
         <div className="flex m-1 gap-2">
           <Switch checked={password} onCheckedChange={setPassword} />
-          <label htmlFor="password-protection " className="font-medium">
+          <label htmlFor="password protection " className="font-medium">
             Password Protection
           </label>
         </div>
@@ -141,6 +185,9 @@ export default function CreateLinkForm() {
             </div>
           </div>
         }
+        <button className="flex items-center w-38 gap-2 px-6 py-2 rounded-lg bg-darkBackground text-white hover:bg-black font-medium text-lg cursor-pointer transition duration-200 shadow-sm hover:shadow-md">
+          Create Link
+        </button>
       </div>
     </form>
   );

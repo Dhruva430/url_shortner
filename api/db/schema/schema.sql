@@ -9,7 +9,6 @@ CREATE TABLE IF NOT EXISTS users(
     image TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
-    
     CONSTRAINT unique_provider_user UNIQUE (provider, provider_id)
 );
 
@@ -18,6 +17,7 @@ CREATE TABLE IF NOT EXISTS urls (
     original_url TEXT NOT NULL,
     title TEXT,
     short_code VARCHAR(20) NOT NULL UNIQUE,
+    thumbnail TEXT,
     click_count INTEGER NOT NULL DEFAULT 0,
     password_hash TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
