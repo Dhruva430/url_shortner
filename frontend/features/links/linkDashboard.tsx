@@ -1,19 +1,40 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { LinkIcon, Plus } from "lucide-react";
 import { useLinks } from "@/features/links/hooks/useLinks";
 import CreateLinkDialog from "@/components/createLinkDialog";
 import { LinkData } from "@/features/links/types";
 import LinkPreviewDialog from "@/components/linkPreviewDialog";
-
+import { useQueryClient } from "@tanstack/react-query";
 import Card from "@/components/card";
+import QrDialog from "@/components/qrDialog";
 
 export default function LinksDashboard() {
   const [open, setOpen] = useState(false);
   const [selectedLink, setSelectedLink] = useState<LinkData | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
 
-  const { links, isLoading, refetch } = useLinks();
+  const [qrOpen, setQrOpen] = useState(false);
+  const [qrLink, setQrLink] = useState<LinkData | null>(null);
+
+  const shortCode = qrLink?.short_url.split("/").pop();
+  const qrImage = "http://localhost:8080/api/protected/links/${shortcode}";
+
+  const handleQrCode = (link: LinkData) => {
+    setQrLink(link);
+    setQrOpen(true);
+  };
+
+  const handleDownloadQR = () => {
+    if (!qrImage) return;
+    const a = document.createElement("a");
+    a.href = qrImage;
+    a.download = `${shortCode || "qr-code"}.png`;
+    a.click();
+  };
+
+  const queryClient = useQueryClient();
+  const { links, refetch } = useLinks();
 
   const handleDelete = async (shortUrl: string) => {
     const shortcode = shortUrl.split("/").pop();
@@ -22,17 +43,17 @@ export default function LinksDashboard() {
       return;
     }
 
-    const res = await fetch(
-      `http://localhost:8080/api/protected/links/${shortcode}`,
-      {
-        method: "DELETE",
-        credentials: "include",
-      }
-    );
+    await fetch(`http://localhost:8080/api/protected/links/${shortcode}`, {
+      method: "DELETE",
+      credentials: "include",
+    });
+
+    queryClient.invalidateQueries({ queryKey: ["links"] });
   };
 
   return (
     <>
+      {/* Header + Create Button */}
       <div className="flex flex-col justify-center items-center space-y-1.5 p-6">
         <h3 className="text-2xl font-semibold tracking-tight text-black flex items-center gap-2">
           <LinkIcon className="inline size-6" />
@@ -55,6 +76,7 @@ export default function LinksDashboard() {
         />
       </div>
 
+      {/* List of Links */}
       {links?.map((link) => (
         <Card
           key={link.id}
@@ -63,14 +85,24 @@ export default function LinksDashboard() {
             setSelectedLink(link);
             setPreviewOpen(true);
           }}
+          onQrCode={() => handleQrCode(link)}
           onDelete={() => handleDelete(link.short_url)}
         />
       ))}
+
       {selectedLink && (
         <LinkPreviewDialog
           isOpen={previewOpen}
           onClose={() => setPreviewOpen(false)}
           data={selectedLink}
+        />
+      )}
+
+      {qrLink && (
+        <QrDialog
+          open={qrOpen}
+          onClose={() => setQrOpen(false)}
+          link={qrLink}
         />
       )}
     </>

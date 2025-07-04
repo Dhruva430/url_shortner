@@ -7,10 +7,11 @@ import { Switch } from "@components/ui/switch";
 import { cn } from "@/lib/utils";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { LinkData } from "@/features/links/types";
+import PasswordInput from "@components/passwordinput";
 import { useEffect } from "react";
 import { useFetchTitle } from "@/features/auth/hooks/useFetchTitle";
 import { Label } from "@/components/ui/label";
+import { useQueryClient } from "@tanstack/react-query";
 
 const schema = z.object({
   original_url: z
@@ -26,10 +27,10 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 type CreateLinkFormProps = {
-  onSuccess?: (link: LinkData) => void;
+  onClose: () => void;
 };
 
-export default function CreateLinkForm({ onSuccess }: CreateLinkFormProps) {
+export default function CreateLinkForm({ onClose }: CreateLinkFormProps) {
   const [password, setPassword] = useState(false);
   const [expiry, setExpiry] = useState(false);
   const {
@@ -44,54 +45,25 @@ export default function CreateLinkForm({ onSuccess }: CreateLinkFormProps) {
     resolver: zodResolver(schema),
   });
 
+  const queryClient = useQueryClient();
   const onSubmit = async (data: FormData) => {
-    try {
-      const response = await fetch(
-        "http://localhost:8080/api/protected/shorten",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify(data),
-        }
-      );
-      const result = await response.json();
-      if (!response.ok) {
-        throw new Error(result.message || "Network response was not ok");
+    const response = await fetch(
+      "http://localhost:8080/api/protected/shorten",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify(data),
       }
-      // Normalize to dashboard's LinkData shape
-      const newLink: LinkData = {
-        id: result.id,
-        title: result.title || data.title,
-        originalUrl: result.original_url || data.original_url,
-        shortUrl: result.short_url || "",
-        clicks: result.clicks ?? result.click_count ?? 0,
-        createdAt: result.createdAt
-          ? new Date(result.createdAt).toLocaleDateString("en-GB", {
-              day: "2-digit",
-              month: "short",
-              year: "numeric",
-            })
-          : new Date().toLocaleDateString("en-GB", {
-              day: "2-digit",
-              month: "short",
-              year: "numeric",
-            }),
-        status:
-          result.status ||
-          (data.password
-            ? "Protected"
-            : data.expire_at && new Date(data.expire_at) < new Date()
-            ? "Expired"
-            : "Active"),
-        thumbnail: result.thumbnail || "https://via.placeholder.com/48",
-      };
-      onSuccess?.(newLink);
-    } catch (error) {
-      console.error("Error:", error);
+    );
+    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(result.message || "Network response was not ok");
     }
+    queryClient.invalidateQueries({ queryKey: ["links"] });
+    onClose();
   };
 
   const originalUrl = watch("original_url");
@@ -198,9 +170,8 @@ export default function CreateLinkForm({ onSuccess }: CreateLinkFormProps) {
             <label htmlFor="password-input" className="font-medium">
               Password&nbsp;*
             </label>
-            <Input
+            <PasswordInput
               id="password-input"
-              type="password"
               placeholder="Enter Password"
               {...register("password")}
               disabled={!password}

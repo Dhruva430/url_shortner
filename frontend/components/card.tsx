@@ -9,19 +9,31 @@ type CardProps = {
   link: LinkData;
   onDelete: (short_url: string) => void;
   onPreview: (link: LinkData) => void;
+  onQrCode?: (url: string) => void;
 };
 
-export default function Card({ link: _link, onDelete, onPreview }: CardProps) {
+export default function Card({
+  link,
+  onDelete,
+  onPreview,
+  onQrCode,
+}: CardProps) {
   const [editOpen, setEditOpen] = useState(false);
-  const [link, setLink] = useState<LinkData>(_link);
   const onEdit = () => {
     setEditOpen(true);
   };
   const onSuccess = (updatedLink: LinkData) => {
     setEditOpen(false);
-    setLink(updatedLink);
     console.log("Link updated successfully:", updatedLink);
   };
+  const handleQrCode = (url: string) => {
+    if (onQrCode) {
+      onQrCode(url);
+    }
+  };
+  const expire = link.expire_at ? new Date(link.expire_at) < new Date() : false;
+  const active = link.expire_at ? new Date(link.expire_at) > new Date() : true;
+  const passwordProtected = link.password ? true : false;
   return (
     <div
       key={link.id}
@@ -41,6 +53,7 @@ export default function Card({ link: _link, onDelete, onPreview }: CardProps) {
             id={link.id}
             onDelete={() => onDelete(link.short_url)}
             onPreview={() => onPreview(link)}
+            onQrCode={() => handleQrCode(link.short_url)}
             onEdit={onEdit}
           />
         </div>
@@ -63,18 +76,18 @@ export default function Card({ link: _link, onDelete, onPreview }: CardProps) {
             <p className="text-gray-500">{link.created_at}</p>
           </div>
           <div className="gap-3 flex items-center justify-center">
-            {link.status === "Active" && (
+            {active && (
               <div className="bg-black text-xs font-semibold text-white px-4 py-1 rounded-xl">
                 Active
               </div>
             )}
-            {link.status === "Protected" && (
+            {passwordProtected && (
               <div className="bg-white text-black border border-gray-300 text-xs font-semibold px-4 py-1 flex items-center gap-1 rounded-xl">
                 <Shield className="size-4 text-black" />
                 Protected
               </div>
             )}
-            {link.status === "Expired" && (
+            {expire && (
               <div className="bg-red-500 text-xs font-semibold text-white px-4 py-1 rounded-xl">
                 Expired
               </div>

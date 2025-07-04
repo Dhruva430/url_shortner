@@ -12,7 +12,8 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { XIcon } from "lucide-react";
 import { LinkData } from "@/features/links/types";
-
+import { useQueryClient } from "@tanstack/react-query";
+import PasswordInput from "@components/passwordinput";
 const EditLinkSchema = z.object({
   title: z.string().min(1, "Title is required"),
   original_url: z.string().url("Enter a valid URL"),
@@ -38,6 +39,7 @@ export default function EditLinkDialog({
   onSuccess,
   onClose,
 }: Props) {
+  const [password, setPassword] = useState(!!initialData.password);
   const [mounted, setMounted] = useState(false);
   const [expiry, setExpiry] = useState(!!initialData.expire_at);
   const {
@@ -65,6 +67,8 @@ export default function EditLinkDialog({
 
   const expireAt = useWatch({ control, name: "expire_at" });
 
+  const queryClient = useQueryClient();
+
   const onSubmit = async (formData: EditLinkData) => {
     try {
       const res = await fetch(
@@ -81,7 +85,8 @@ export default function EditLinkDialog({
       if (!res.ok) {
         throw new Error(result.message || "Update failed");
       }
-
+      console.log("Update successful:", data);
+      queryClient.invalidateQueries({ queryKey: ["links"] });
       onSuccess?.({ ...data });
     } catch (err) {
       console.error("Update error:", err);
@@ -157,6 +162,45 @@ export default function EditLinkDialog({
               value={expireAt}
               onChange={(v) => setValue("expire_at", v)}
             />
+          </div>
+
+          <div className="flex gap-2">
+            <Switch
+              id="password"
+              checked={password}
+              onCheckedChange={(val) => {
+                setPassword(val);
+                if (!val) {
+                  setValue("password", undefined);
+                }
+              }}
+            />
+            <Label htmlFor="password">Set Password</Label>
+          </div>
+          <div
+            className={cn(
+              "grid transition-all duration-300",
+              password
+                ? "grid-rows-[1fr] opacity-100"
+                : "grid-rows-[0fr] opacity-0 pointer-events-none"
+            )}
+          >
+            <div className="overflow-hidden">
+              <label htmlFor="password-input" className="font-medium">
+                Password&nbsp;*
+              </label>
+              <PasswordInput
+                id="password-input"
+                placeholder="Enter Password"
+                {...register("password")}
+                disabled={!password}
+              />
+              {errors.password && (
+                <p className="text-red-500 text-sm mt-1">
+                  {errors.password.message}
+                </p>
+              )}
+            </div>
           </div>
 
           <button

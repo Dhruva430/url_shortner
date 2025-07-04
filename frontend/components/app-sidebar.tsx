@@ -60,7 +60,7 @@ export default function AppSidebar() {
       label: "Analytics",
     },
     {
-      href: "/qr-codes",
+      href: "/dashboard/qr_code",
       icon: <QrCode className="size-5" />,
       label: "QR Codes",
     },

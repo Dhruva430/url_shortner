@@ -5,7 +5,7 @@ export interface LinkData {
   short_url: string;
   clicks: number;
   created_at: string;
-  status: "Active" | "Protected" | "Expired";
+  password: boolean;
   thumbnail?: string;
   expire_at?: string;
 }

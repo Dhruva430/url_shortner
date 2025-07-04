@@ -9,6 +9,7 @@ type ThemeDropdownProps = {
   onDelete: (shortUrl: string, id: string) => void;
   onPreview?: () => void;
   onEdit?: () => void;
+  onQrCode?: () => void;
 };
 
 export default function ThemeDropdown({
@@ -17,10 +18,12 @@ export default function ThemeDropdown({
   onDelete,
   onPreview,
   onEdit,
+  onQrCode,
 }: ThemeDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const closeMenu = () => setIsOpen(false);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -67,20 +70,25 @@ export default function ThemeDropdown({
                 className="flex items-center gap-2 rounded-md px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
                 onClick={() => {
                   onPreview?.();
-                  setIsOpen(false);
                 }}
               >
                 <Eye className="size-4" />
                 Preview
               </div>
-              <div className="flex gap-2 items-center rounded-md px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
+              <div
+                onClick={() => {
+                  onQrCode?.();
+                  closeMenu();
+                }}
+                className="flex gap-2 items-center rounded-md px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
+              >
                 <QrCode className="size-4" />
                 Get QR
               </div>
               <div
                 onClick={() => {
                   onEdit?.();
-                  setIsOpen(false);
+                  closeMenu();
                 }}
                 className="flex items-center gap-2 rounded-md px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
               >

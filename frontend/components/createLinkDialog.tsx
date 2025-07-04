@@ -8,7 +8,6 @@ import { LinkData } from "@/features/links/types";
 export default function CreateLinkDialog({
   open,
   onOpenChange,
-  onCreateLink,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -39,8 +38,7 @@ export default function CreateLinkDialog({
         </div>
 
         <CreateLinkForm
-          onSuccess={(link) => {
-            onCreateLink();
+          onClose={() => {
             onOpenChange(false);
           }}
         />
