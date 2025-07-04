@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Exo } from "next/font/google";
 import "./globals.css";
+import QueryProvider from "./providers/queryProvider";
 
 const exo = Exo({
   variable: "--font-exo",
@@ -21,7 +22,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={exo.variable}>
       <body className="bg-background text-foreground antialiased">
-        {children}
+        <QueryProvider>{children}</QueryProvider>
       </body>
     </html>
   );

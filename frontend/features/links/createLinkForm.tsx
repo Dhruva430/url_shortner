@@ -1,15 +1,16 @@
 "use client";
 import React, { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { Calendar24 } from "@components/calender";
 import Input from "@/components/input";
-import Switch from "@components/ui/switch";
+import { Switch } from "@components/ui/switch";
 import { cn } from "@/lib/utils";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { LinkData } from "@/features/links/types";
 import { useEffect } from "react";
 import { useFetchTitle } from "@/features/auth/hooks/useFetchTitle";
+import { Label } from "@/components/ui/label";
 
 const schema = z.object({
   original_url: z
@@ -24,11 +25,11 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>;
 
-export default function CreateLinkForm({
-  onSuccess,
-}: {
+type CreateLinkFormProps = {
   onSuccess?: (link: LinkData) => void;
-}) {
+};
+
+export default function CreateLinkForm({ onSuccess }: CreateLinkFormProps) {
   const [password, setPassword] = useState(false);
   const [expiry, setExpiry] = useState(false);
   const {
@@ -38,14 +39,13 @@ export default function CreateLinkForm({
     setValue,
     formState: { errors },
     getFieldState,
+    control,
   } = useForm<FormData>({
     resolver: zodResolver(schema),
   });
-  const expireTime = watch("expire_at");
 
   const onSubmit = async (data: FormData) => {
     try {
-      console.log(data);
       const response = await fetch(
         "http://localhost:8080/api/protected/shorten",
         {
@@ -57,29 +57,38 @@ export default function CreateLinkForm({
           body: JSON.stringify(data),
         }
       );
-
-      if (!response.ok) {
-        throw new Error("Network response was not ok");
-      }
-
       const result = await response.json();
-
-      if (onSuccess) {
-        onSuccess({
-          id: result.id || Date.now().toString(),
-          title: result.title || data.title,
-          originalUrl: result.original_url || data.original_url,
-          shortUrl: result.short_url,
-          clicks: 0,
-          createdAt: result.format,
-          status: data.password
+      if (!response.ok) {
+        throw new Error(result.message || "Network response was not ok");
+      }
+      // Normalize to dashboard's LinkData shape
+      const newLink: LinkData = {
+        id: result.id,
+        title: result.title || data.title,
+        originalUrl: result.original_url || data.original_url,
+        shortUrl: result.short_url || "",
+        clicks: result.clicks ?? result.click_count ?? 0,
+        createdAt: result.createdAt
+          ? new Date(result.createdAt).toLocaleDateString("en-GB", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+            })
+          : new Date().toLocaleDateString("en-GB", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+            }),
+        status:
+          result.status ||
+          (data.password
             ? "Protected"
             : data.expire_at && new Date(data.expire_at) < new Date()
             ? "Expired"
-            : "Active",
-          thumbnail: result.thumbnail || "https://via.placeholder.com/48",
-        });
-      }
+            : "Active"),
+        thumbnail: result.thumbnail || "https://via.placeholder.com/48",
+      };
+      onSuccess?.(newLink);
     } catch (error) {
       console.error("Error:", error);
     }
@@ -87,13 +96,19 @@ export default function CreateLinkForm({
 
   const originalUrl = watch("original_url");
   const { title } = useFetchTitle(originalUrl);
+
   useEffect(() => {
     const isTitleDirty = getFieldState("title").isDirty;
 
     if (!isTitleDirty) {
       setValue("title", title, { shouldDirty: false });
     }
-  }, [title, setValue, watch]);
+  }, [title, setValue, getFieldState]);
+
+  const expireAt = useWatch({
+    control: control,
+    name: "expire_at",
+  });
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
@@ -136,55 +151,62 @@ export default function CreateLinkForm({
 
       <div className="flex flex-col gap-4 m-2">
         <div className="flex m-1 gap-2">
-          <Switch checked={password} onCheckedChange={setPassword} />
-          <label htmlFor="password protection " className="font-medium">
-            Password Protection
-          </label>
+          <Switch id="expiry" checked={expiry} onCheckedChange={setExpiry} />
+          <Label htmlFor="expiry">Expiry Date</Label>
         </div>
-        {
-          <div
-            className={cn(
-              "grid grid-rows-[0fr]  transition-all opacity-0",
-              password && "grid-rows-[1fr] opacity-100"
-            )}
-          >
-            <div className="overflow-hidden">
-              <label htmlFor="password" className="font-medium">
-                Password *
-              </label>
-              <Input placeholder="Enter Password" {...register("password")} />
-            </div>
+
+        <div
+          className={cn(
+            "grid transition-all duration-300",
+            expiry
+              ? "grid-rows-[1fr] opacity-100"
+              : "grid-rows-[0fr] opacity-0 pointer-events-none"
+          )}
+        >
+          <div className="overflow-hidden">
+            <label
+              htmlFor="datepicker"
+              className="block text-gray-800 font-medium mb-1"
+            >
+              Select Date &amp; Time
+            </label>
+            <Calendar24
+              onChange={(v) => setValue("expire_at", v)}
+              value={expireAt}
+            />
           </div>
-        }
+        </div>
       </div>
       <div className="flex flex-col gap-4 m-2">
         <div className="flex m-1 gap-2">
-          <Switch checked={expiry} onCheckedChange={setExpiry} />
-          <label htmlFor="password-protection " className="font-medium">
-            Set Expiry Date & Time
-          </label>
+          <Switch
+            id="password"
+            checked={password}
+            onCheckedChange={setPassword}
+          />
+          <Label htmlFor="password">Set Password</Label>
         </div>
-        {
-          <div
-            className={cn(
-              "grid grid-rows-[0fr]  transition-all opacity-0",
-              expiry && "grid-rows-[1fr] opacity-100"
-            )}
-          >
-            <div className="overflow-hidden">
-              <label
-                htmlFor="datepicker"
-                className="block text-gray-800 font-medium mb-1"
-              >
-                Select Date & Time
-              </label>
-              <Calendar24
-                onChange={(v) => setValue("expire_at", v)}
-                value={expireTime}
-              />
-            </div>
+        <div
+          className={cn(
+            "grid transition-all duration-300",
+            password
+              ? "grid-rows-[1fr] opacity-100"
+              : "grid-rows-[0fr] opacity-0 pointer-events-none"
+          )}
+        >
+          <div className="overflow-hidden">
+            <label htmlFor="password-input" className="font-medium">
+              Password&nbsp;*
+            </label>
+            <Input
+              id="password-input"
+              type="password"
+              placeholder="Enter Password"
+              {...register("password")}
+              disabled={!password}
+            />
           </div>
-        }
+        </div>
         <button className="flex items-center w-38 gap-2 px-6 py-2 rounded-lg bg-darkBackground text-white hover:bg-black font-medium text-lg cursor-pointer transition duration-200 shadow-sm hover:shadow-md">
           Create Link
         </button>

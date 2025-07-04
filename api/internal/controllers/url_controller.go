@@ -126,18 +126,10 @@ func (c *URLController) GetUserURLs(ctx *gin.Context) {
 		return
 	}
 
-	var result []models.ShortURLDashboardItem
+	var result []models.LinkResponse
 
 	for _, link := range links {
-		status := "Active"
-		if link.PasswordHash.Valid {
-			status = "Protected"
-		}
-		if link.ExpireAt.Valid && link.ExpireAt.Time.Before(time.Now()) {
-			status = "Expired"
-		}
-
-		result = append(result, models.ShortURLDashboardItem{
+		result = append(result, models.LinkResponse{
 			ID:          int64(link.ID),
 			Title:       utils.NullToStr(link.Title),
 			OriginalURL: link.OriginalUrl,
@@ -145,7 +137,6 @@ func (c *URLController) GetUserURLs(ctx *gin.Context) {
 			Thumbnail:   utils.NullToStr(link.Thumbnail),
 			Clicks:      int(link.ClickCount),
 			CreatedAt:   utils.FormatNullTime(link.CreatedAt),
-			Status:      status,
 		})
 	}
 
@@ -157,6 +148,10 @@ func (c *URLController) RedirectToOriginalURL(ctx *gin.Context) {
 	url, err := c.store.GetOriginalURL(ctx, shortCode)
 	if err != nil {
 		ctx.JSON(404, gin.H{"error": "Short URL not found"})
+		return
+	}
+	if url.ExpireAt.Valid && url.ExpireAt.Time.Before(time.Now()) {
+		ctx.JSON(410, gin.H{"error": "This short URL has expired"})
 		return
 	}
 	go func(shortCode string) {
@@ -240,9 +235,20 @@ func (c *URLController) UpdateShortURL(ctx *gin.Context) {
 		return
 	}
 
+	response := models.LinkResponse{
+		ID:          int64(updated.ID),
+		Title:       updated.Title.String,
+		OriginalURL: updated.OriginalUrl,
+		ShortURL:    configs.GetAPIURL() + "/s/" + updated.ShortCode,
+		Clicks:      int(updated.ClickCount),
+		CreatedAt:   utils.FormatNullTime(updated.CreatedAt),
+		Thumbnail:   utils.NullToStr(updated.Thumbnail),
+		ExpireAt:    utils.FormatNullTime(updated.ExpireAt),
+	}
+
 	ctx.JSON(http.StatusOK, gin.H{
 		"message": "link updated successfully",
-		"data":    updated,
+		"data":    response,
 	})
 }
 

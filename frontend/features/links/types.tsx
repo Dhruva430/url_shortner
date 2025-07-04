@@ -1,11 +1,11 @@
 export interface LinkData {
   id: string;
   title: string;
-  originalUrl: string;
-  shortUrl: string;
+  original_url: string;
+  short_url: string;
   clicks: number;
-  createdAt: string;
+  created_at: string;
   status: "Active" | "Protected" | "Expired";
   thumbnail?: string;
-  expireAt?: string;
+  expire_at?: string;
 }

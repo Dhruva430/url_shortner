@@ -52,15 +52,6 @@ func SetupRouter(store *db.Queries, conn *sql.DB) *gin.Engine {
 	protected := routerAPI.Group("/protected")
 
 	protected.Use(middleware.JWTAuthMiddleware())
-	// protected.GET("/user", func(c *gin.Context) {
-	// 	username, exists := c.Get("username")
-	// 	if !exists {
-	// 		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-	// 		return
-	// 	}
-	// 	c.JSON(http.StatusOK, gin.H{"username": username})
-
-	// })
 
 	protected.POST("/shorten", URLController.CreateShortURL)
 	protected.POST("/shorten/qr", URLController.GetQRCode)

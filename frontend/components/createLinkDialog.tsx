@@ -12,7 +12,7 @@ export default function CreateLinkDialog({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onCreateLink: (link: LinkData) => void;
+  onCreateLink: () => void;
 }) {
   if (!open) return null;
 
@@ -40,8 +40,8 @@ export default function CreateLinkDialog({
 
         <CreateLinkForm
           onSuccess={(link) => {
-            onCreateLink(link);
-            onOpenChange(false); // close dialog after success
+            onCreateLink();
+            onOpenChange(false);
           }}
         />
       </div>

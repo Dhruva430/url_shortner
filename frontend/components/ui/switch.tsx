@@ -1,31 +1,31 @@
-"use client";
+"use client"
 
-import { useState } from "react";
+import * as React from "react"
+import * as SwitchPrimitive from "@radix-ui/react-switch"
 
-export default function ToggleSwitch({
-  checked,
-  onCheckedChange,
-}: {
-  checked: boolean;
-  onCheckedChange: (checked: boolean) => void;
-}) {
+import { cn } from "@/lib/utils"
+
+function Switch({
+  className,
+  ...props
+}: React.ComponentProps<typeof SwitchPrimitive.Root>) {
   return (
-    <div className="flex flex-col items-center">
-      {/* Toggle Switch with Label */}
-      <div className="flex items-center gap-2">
-        <input
-          id="switch-link"
-          type="checkbox"
-          onClick={() => onCheckedChange(!checked)}
-          className="appearance-none relative inline-block rounded-full w-12 h-6 cursor-pointer 
-            before:inline-block before:absolute before:top-0 before:left-0 before:w-full before:h-full 
-            before:rounded-full before:bg-stone-200 before:transition-colors before:duration-200 before:ease-in 
-            after:absolute after:top-2/4 after:left-0 after:-translate-y-2/4 after:w-6 after:h-6 
-            after:border after:border-stone-200 after:bg-white after:rounded-full 
-            checked:after:translate-x-full after:transition-all after:duration-200 after:ease-in 
-            dark:after:bg-white checked:before:bg-stone-800 checked:after:border-stone-800"
-        />
-      </div>
-    </div>
-  );
+    <SwitchPrimitive.Root
+      data-slot="switch"
+      className={cn(
+        "peer data-[state=checked]:bg-primary data-[state=unchecked]:bg-input focus-visible:border-ring focus-visible:ring-ring/50 dark:data-[state=unchecked]:bg-input/80 inline-flex h-[1.15rem] w-8 shrink-0 items-center rounded-full border border-transparent shadow-xs transition-all outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50",
+        className
+      )}
+      {...props}
+    >
+      <SwitchPrimitive.Thumb
+        data-slot="switch-thumb"
+        className={cn(
+          "bg-background dark:data-[state=unchecked]:bg-foreground dark:data-[state=checked]:bg-primary-foreground pointer-events-none block size-4 rounded-full ring-0 transition-transform data-[state=checked]:translate-x-[calc(100%-2px)] data-[state=unchecked]:translate-x-0"
+        )}
+      />
+    </SwitchPrimitive.Root>
+  )
 }
+
+export { Switch }

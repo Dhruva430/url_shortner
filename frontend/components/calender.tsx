@@ -25,15 +25,14 @@ export function Calendar24(props: CalendarProps) {
   const [open, setOpen] = React.useState(false);
   const [date, setDate] = React.useState<Date | undefined>(undefined);
 
-  React.useEffect(() => {
-    // merge date and time and call onChange
+  useEffect(() => {
     if (date && time) {
       const [hours, minutes, seconds] = time.split(":").map(Number);
       const newDate = new Date(date);
       newDate.setHours(hours, minutes, seconds);
       props.onChange?.(newDate);
     }
-  }, [date, time, props]);
+  }, [date, time]);
 
   return (
     <div className="flex gap-4">
@@ -61,6 +60,7 @@ export function Calendar24(props: CalendarProps) {
                 setDate(date);
                 setOpen(false);
               }}
+              disabled={{ before: new Date() }}
             />
           </PopoverContent>
         </Popover>
