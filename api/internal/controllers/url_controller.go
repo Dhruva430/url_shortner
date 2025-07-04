@@ -125,10 +125,12 @@ func (c *URLController) GetUserURLs(ctx *gin.Context) {
 		ctx.JSON(500, gin.H{"error": "Failed to fetch user links"})
 		return
 	}
+	// if url has a password, set password to true
 
 	var result []models.LinkResponse
 
 	for _, link := range links {
+		var password bool = link.PasswordHash.String != ""
 		result = append(result, models.LinkResponse{
 			ID:          int64(link.ID),
 			Title:       utils.NullToStr(link.Title),
@@ -137,6 +139,8 @@ func (c *URLController) GetUserURLs(ctx *gin.Context) {
 			Thumbnail:   utils.NullToStr(link.Thumbnail),
 			Clicks:      int(link.ClickCount),
 			CreatedAt:   utils.FormatNullTime(link.CreatedAt),
+			ExpireAt:    utils.FormatNullTime(link.ExpireAt),
+			Password:    password,
 		})
 	}
 
@@ -221,12 +225,18 @@ func (c *URLController) UpdateShortURL(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "title and original_url are required"})
 		return
 	}
+	password, err := utils.HashPassword(req.Password)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to hash password"})
+		return
+	}
 
 	args := db.UpdateShortURLParams{
-		ShortCode:   shortcode,
-		OriginalUrl: req.OriginalURL,
-		Title:       sql.NullString{String: req.Title, Valid: true},
-		ExpireAt:    expireAt,
+		ShortCode:    shortcode,
+		OriginalUrl:  req.OriginalURL,
+		Title:        sql.NullString{String: req.Title, Valid: true},
+		ExpireAt:     expireAt,
+		PasswordHash: sql.NullString{String: password, Valid: req.Password != ""},
 	}
 
 	updated, err := c.store.UpdateShortURL(ctx, args)
@@ -253,33 +263,21 @@ func (c *URLController) UpdateShortURL(ctx *gin.Context) {
 }
 
 func (c *URLController) GetQRCode(ctx *gin.Context) {
-	var req models.QRCodeRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(400, gin.H{"error": "Invalid request body"})
+	// print("Hello from GetQRCode")
+	shortcode := ctx.Param("shortcode")
+	if shortcode == "" {
+		ctx.JSON(400, gin.H{"error": "Shortcode is required"})
 		return
 	}
+	shortURL := configs.GetAPIURL() + "/s/" + shortcode
 
-	if req.ExpiryDays < 0 {
-		req.ExpiryDays = 0
-	}
-	var expiry *time.Time
-	if req.ExpiryDays > 0 {
-		now := time.Now()
-		exp := now.Add(time.Duration(req.ExpiryDays) * 24 * time.Hour)
-		expiry = &exp
-		if time.Now().After(*expiry) {
-			ctx.JSON(410, gin.H{"error": "This QR code has expired"})
-			return
-		}
-	}
-
-	qrCode, err := utils.GenerateQRCode(req.OriginalURL, 256)
+	qrCode, err := utils.GenerateQRCode(shortURL, 256)
 	if err != nil {
 		ctx.JSON(500, gin.H{"error": "Failed to generate QR code"})
 		return
 	}
+
 	ctx.Header("Content-Type", "image/png")
-	// ctx.Data(200, "image/png", qrCode)
 	ctx.Writer.Write(qrCode)
 }
 

@@ -1,11 +1,12 @@
 package oauth
 
 import (
-	"api/configs"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
+
+	"api/configs"
 )
 
 type Provider string
@@ -67,7 +68,6 @@ func (P *GoogleProvider) RedirectURL(provider Provider) (*url.URL, error) {
 	redirectUrl.RawQuery = query.Encode()
 
 	return redirectUrl, nil
-
 }
 
 type googleTokenResponse struct {
@@ -114,11 +114,13 @@ func (p *GoogleProvider) Callback(code string) (*OAuthUser, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	req.Header.Set("Authorization", "Bearer "+tokenResponse.AccessToken)
 	res2, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
+
 	defer res2.Body.Close()
 	if err := json.NewDecoder(res2.Body).Decode(&userInfoResp); err != nil {
 		return nil, err

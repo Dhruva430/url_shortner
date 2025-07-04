@@ -22,7 +22,6 @@ func GenerateQRCode(url string, size int) ([]byte, error) {
 	qr, err := qrcode.New(url, qrcode.High)
 	if err != nil {
 		return nil, err
-
 	}
 	qr.DisableBorder = false
 	qrImg := qr.Image(size)
@@ -31,8 +30,8 @@ func GenerateQRCode(url string, size int) ([]byte, error) {
 		return nil, err
 	}
 	return buf.Bytes(), nil
-
 }
+
 func ParseHexColor(s string) (color.Color, error) {
 	s = strings.TrimPrefix(s, "#")
 	var r, g, b uint8

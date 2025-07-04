@@ -27,10 +27,10 @@ func SetupRouter(store *db.Queries, conn *sql.DB) *gin.Engine {
 	})
 
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:3000"},
+		AllowOrigins:     []string{"http://localhost:3000", "https://uhxnpmnnw4r7.share.zrok.io"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
-		ExposeHeaders:    []string{"Content-Length"},
+		ExposeHeaders:    []string{"Content-Length", "Content-Disposition"},
 		AllowCredentials: true,
 	}))
 
@@ -46,15 +46,15 @@ func SetupRouter(store *db.Queries, conn *sql.DB) *gin.Engine {
 	routerAPI.GET("/logout", authController.Logout)
 	routerAPI.GET("/check-username", authController.CheckUsername)
 
-	routerAPI.GET("/auth/:provider", HandleOAuthRedirect)
-	routerAPI.GET("/auth/:provider/callback", HandleOAuthCallback)
+	routerAPI.GET("/auth/:provider", authController.ProviderRedirect)
+	routerAPI.GET("/auth/:provider/callback", authController.ProviderCallback)
 
 	protected := routerAPI.Group("/protected")
 
 	protected.Use(middleware.JWTAuthMiddleware())
 
 	protected.POST("/shorten", URLController.CreateShortURL)
-	protected.POST("/shorten/qr", URLController.GetQRCode)
+	protected.GET("/shorten/qr/:shortcode", URLController.GetQRCode)
 	protected.POST("/shorten/qr-with-logo", URLController.GetQRCodeWithLogo)
 	protected.GET("/links", URLController.GetUserURLs)
 	protected.DELETE("/links/:shortcode", URLController.DeleteShortURL)
@@ -88,8 +88,6 @@ func HandleOAuthRedirect(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate redirect URL"})
 		return
 	}
-	// fmt.Println("Redirect URL:", redirectURL.String())
-	// fmt.Println("Google Client ID from env:", configs.GetGoogleClientID())
 
 	ctx.Redirect(http.StatusFound, redirectURL.String())
 }
