@@ -1,19 +1,45 @@
 package models
 
-type ShortURLResponse struct {
-	ShortURL string `json:"short_url"`
-}
+import "time"
+
 type ShortURLRequest struct {
-	OriginalURL string `json:"original_url"`
-	UserID      *int32 `json:"user_id,omitempty"`
-	Shortcode   string `json:"shortcode,omitempty"`
+	OriginalURL string     `json:"original_url" binding:"required,url"`
+	Shortcode   string     `json:"shortcode,omitempty"`
+	Title       string     `json:"title,omitempty"`
+	Password    string     `json:"password,omitempty"`
+	ExpireAt    *time.Time `json:"expire_at,omitempty"`
 }
-type QRCodeResponse struct {
-	ShortURL string `json:"short_url"`
-	QRcode   string `json:"qrcode"`
+type ShortURLResponse struct {
+	ShortURL  string `json:"short_url"`
+	Thumbnail string `json:"thumbnail,omitempty"`
+	Format    string `json:"format,omitempty"`
 }
 
-// #TODO: Add user logo link struct ****premium feature****
-type QRCodeWithLogoRequest struct {
-	LogoURL string `json:"logo_url,omitempty"`
+//	type ShortURLDashboardItem struct {
+//		ID          int64  `json:"id"`
+//		Title       string `json:"title"`
+//		OriginalURL string `json:"original_url"`
+//		ShortURL    string `json:"short_url"`
+//		Clicks      int    `json:"clicks"`
+//		CreatedAt   string `json:"created_at"`
+//		Thumbnail   string `json:"thumbnail"`
+//		ExpireAt    string `json:"expire_at,omitempty"`
+//		Password    bool   `json:"password,omitempty"`
+//	}
+type EditURLRequest struct {
+	Title       string `json:"title"`
+	OriginalURL string `json:"original_url"`
+	ExpireAt    string `json:"expire_at"`
+	Password    string `json:"password"`
+}
+type LinkResponse struct {
+	ID          int64  `json:"id"`
+	Title       string `json:"title"`
+	OriginalURL string `json:"original_url"`
+	ShortURL    string `json:"short_url"`
+	Clicks      int    `json:"clicks"`
+	CreatedAt   string `json:"created_at"`
+	Thumbnail   string `json:"thumbnail,omitempty"`
+	ExpireAt    string `json:"expire_at,omitempty"`
+	Password    bool   `json:"password,omitempty"`
 }

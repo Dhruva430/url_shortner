@@ -6,18 +6,25 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 type Querier interface {
 	CreateOAuthUser(ctx context.Context, arg CreateOAuthUserParams) (User, error)
 	CreateShortURL(ctx context.Context, arg CreateShortURLParams) (Url, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
+	DeleteURLByShortCode(ctx context.Context, shortCode string) error
+	GetAnalyticsShortcode(ctx context.Context, shortCode string) ([]GetAnalyticsShortcodeRow, error)
 	GetOriginalURL(ctx context.Context, shortCode string) (Url, error)
+	GetURLVisits(ctx context.Context, urlID int32) ([]UrlVisit, error)
+	GetUrlsByUserID(ctx context.Context, userID sql.NullInt32) ([]Url, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByProvider(ctx context.Context, arg GetUserByProviderParams) (User, error)
 	GetUserByProviderID(ctx context.Context, arg GetUserByProviderIDParams) (User, error)
 	GetUserByUsername(ctx context.Context, username string) (User, error)
 	IncrementClickCount(ctx context.Context, shortCode string) error
+	LogURLVisit(ctx context.Context, arg LogURLVisitParams) error
+	UpdateShortURL(ctx context.Context, arg UpdateShortURLParams) (Url, error)
 }
 
 var _ Querier = (*Queries)(nil)

@@ -5,7 +5,7 @@ meta {
 }
 
 post {
-  url: http://localhost:8080/api/shorten
+  url: http://localhost:8080/api/protected/shorten
   body: json
   auth: inherit
 }
@@ -13,7 +13,9 @@ post {
 body:json {
   {
     "original_url": "https://www.youtube.com",
-  //   "user_id": 2,
-    "shortcode": ""
+    "shortcode": "hellog",
+    "title":"Luicide"
+  //   "password":"iamgenius",
+  //   "expire_at": "2022-12-24T10:30:00+05:30"
   }
 }

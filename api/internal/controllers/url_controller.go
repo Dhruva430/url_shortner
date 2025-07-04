@@ -1,13 +1,17 @@
 package controllers
 
 import (
+	"context"
+	"database/sql"
+	"errors"
+	"fmt"
+	"net/http"
+	"time"
+
 	"api/configs"
 	"api/internal/db"
 	"api/internal/models"
 	"api/internal/utils"
-	"context"
-	"database/sql"
-	"errors"
 
 	"github.com/gin-gonic/gin"
 )
@@ -23,13 +27,12 @@ func NewURLController(store *db.Queries) *URLController {
 func (c *URLController) CreateShortURL(ctx *gin.Context) {
 	var req models.ShortURLRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(400, gin.H{"error": "Invalid request body"})
+		ctx.Error(err)
 		return
 	}
-
+	fmt.Printf("Trying to parse: '%s'\n", req.ExpireAt)
 	var code string
 	if req.Shortcode != "" {
-		// Check if custom shortcode is already taken
 		_, err := c.store.GetOriginalURL(ctx, req.Shortcode)
 		if err == nil {
 			ctx.JSON(409, gin.H{"error": "Shortcode already taken"})
@@ -48,14 +51,51 @@ func (c *URLController) CreateShortURL(ctx *gin.Context) {
 		}
 	}
 
-	arg := db.CreateShortURLParams{
-		OriginalUrl: req.OriginalURL,
-		ShortCode:   code,
+	userID, exists := ctx.Get("user_id")
+	if !exists {
+		ctx.JSON(401, gin.H{"error": "Unauthorized"})
+		return
 	}
-	if req.UserID != nil {
-		arg.UserID = sql.NullInt32{Int32: *req.UserID, Valid: true}
+
+	if req.ExpireAt != nil {
+	}
+
+	var passwordHash sql.NullString
+	if req.Password != "" {
+		hash, err := utils.HashPassword(req.Password)
+		if err != nil {
+			ctx.JSON(500, gin.H{"error": "Failed to hash password"})
+			return
+		}
+		passwordHash = sql.NullString{String: hash, Valid: true}
 	} else {
-		arg.UserID = sql.NullInt32{Valid: false}
+		passwordHash = sql.NullString{Valid: false}
+	}
+
+	var expireAt sql.NullTime
+	if req.ExpireAt != nil {
+		if req.ExpireAt.Before(time.Now()) {
+			ctx.JSON(400, gin.H{"error": "ExpireAt cannot be before the current time"})
+			return
+		}
+		expireAt = sql.NullTime{Time: *req.ExpireAt, Valid: true}
+	}
+	domain, err := utils.GetDomain(req.OriginalURL)
+	if err != nil {
+		ctx.JSON(400, gin.H{"error": "Invalid original URL"})
+		return
+	}
+	thumbnail := "https://www.google.com/s2/favicons?sz=128&domain_url=" + domain
+
+	fmt.Printf("Parsed expiry date: %v\n", req.ExpireAt)
+	arg := db.CreateShortURLParams{
+		OriginalUrl:  req.OriginalURL,
+		ShortCode:    code,
+		Title:        sql.NullString{String: req.Title, Valid: req.Title != ""},
+		PasswordHash: passwordHash,
+		ExpireAt:     expireAt,
+		UserID:       sql.NullInt32{Int32: int32(userID.(int64)), Valid: true},
+		Thumbnail:    sql.NullString{String: thumbnail, Valid: true},
 	}
 
 	url, err := c.store.CreateShortURL(ctx, arg)
@@ -64,9 +104,47 @@ func (c *URLController) CreateShortURL(ctx *gin.Context) {
 		return
 
 	}
+	formatted := time.Now().Format("02 Jan 2006")
 
-	ctx.JSON(200, models.ShortURLResponse{ShortURL: "http://localhost:8080/s/" + url.ShortCode})
+	ctx.JSON(200, models.ShortURLResponse{
+		ShortURL:  configs.GetAPIURL() + "/s/" + url.ShortCode,
+		Thumbnail: utils.GetString(url.Thumbnail),
+		Format:    formatted,
+	})
+}
 
+func (c *URLController) GetUserURLs(ctx *gin.Context) {
+	userID, exists := ctx.Get("user_id")
+	if !exists {
+		ctx.JSON(401, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	links, err := c.store.GetUrlsByUserID(ctx, sql.NullInt32{Int32: int32(userID.(int64)), Valid: true})
+	if err != nil {
+		ctx.JSON(500, gin.H{"error": "Failed to fetch user links"})
+		return
+	}
+	// if url has a password, set password to true
+
+	var result []models.LinkResponse
+
+	for _, link := range links {
+		var password bool = link.PasswordHash.String != ""
+		result = append(result, models.LinkResponse{
+			ID:          int64(link.ID),
+			Title:       utils.NullToStr(link.Title),
+			OriginalURL: link.OriginalUrl,
+			ShortURL:    configs.GetAPIURL() + "/s/" + link.ShortCode,
+			Thumbnail:   utils.NullToStr(link.Thumbnail),
+			Clicks:      int(link.ClickCount),
+			CreatedAt:   utils.FormatNullTime(link.CreatedAt),
+			ExpireAt:    utils.FormatNullTime(link.ExpireAt),
+			Password:    password,
+		})
+	}
+
+	ctx.JSON(200, result)
 }
 
 func (c *URLController) RedirectToOriginalURL(ctx *gin.Context) {
@@ -76,10 +154,31 @@ func (c *URLController) RedirectToOriginalURL(ctx *gin.Context) {
 		ctx.JSON(404, gin.H{"error": "Short URL not found"})
 		return
 	}
+	if url.ExpireAt.Valid && url.ExpireAt.Time.Before(time.Now()) {
+		ctx.JSON(410, gin.H{"error": "This short URL has expired"})
+		return
+	}
 	go func(shortCode string) {
 		_ = c.store.IncrementClickCount(context.Background(), shortCode)
 	}(shortCode)
 	ctx.Redirect(302, url.OriginalUrl)
+}
+
+func (c *URLController) DeleteShortURL(ctx *gin.Context) {
+	shortCode := ctx.Param("shortcode")
+
+	if shortCode == "" {
+		ctx.JSON(400, gin.H{"error": "Shortcode is required"})
+		return
+	}
+
+	err := c.store.DeleteURLByShortCode(ctx, shortCode)
+	if err != nil {
+		ctx.JSON(500, gin.H{"error": "Failed to delete URL"})
+		return
+	}
+
+	ctx.JSON(200, gin.H{"message": "Deleted successfully"})
 }
 
 func GetUniqueShortCode(ctx *gin.Context, store *db.Queries, length, maxAttempts int) (string, error) {
@@ -99,42 +198,156 @@ func GetUniqueShortCode(ctx *gin.Context, store *db.Queries, length, maxAttempts
 	}
 }
 
-func (c *URLController) GetQRCode(ctx *gin.Context) {
-	shortCode := ctx.Param("shortcode")
-	url, err := c.store.GetOriginalURL(ctx, shortCode)
-	if err != nil {
-		ctx.JSON(404, gin.H{"error": "Short URL not found"})
+func (c *URLController) UpdateShortURL(ctx *gin.Context) {
+	shortcode := ctx.Param("shortcode")
+	if shortcode == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "shortcode is required"})
 		return
 	}
-	qrCode, err := utils.GenerateQRCode(url.OriginalUrl, 256)
+
+	var req models.EditURLRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		return
+	}
+
+	expireAt := sql.NullTime{Valid: false}
+	if req.ExpireAt != "" {
+		t, err := time.Parse(time.RFC3339, req.ExpireAt)
+		if err != nil {
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid expire_at format"})
+			return
+		}
+		expireAt = sql.NullTime{Time: t, Valid: true}
+	}
+
+	if req.Title == "" || req.OriginalURL == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "title and original_url are required"})
+		return
+	}
+	password, err := utils.HashPassword(req.Password)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to hash password"})
+		return
+	}
+
+	args := db.UpdateShortURLParams{
+		ShortCode:    shortcode,
+		OriginalUrl:  req.OriginalURL,
+		Title:        sql.NullString{String: req.Title, Valid: true},
+		ExpireAt:     expireAt,
+		PasswordHash: sql.NullString{String: password, Valid: req.Password != ""},
+	}
+
+	updated, err := c.store.UpdateShortURL(ctx, args)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update URL"})
+		return
+	}
+
+	response := models.LinkResponse{
+		ID:          int64(updated.ID),
+		Title:       updated.Title.String,
+		OriginalURL: updated.OriginalUrl,
+		ShortURL:    configs.GetAPIURL() + "/s/" + updated.ShortCode,
+		Clicks:      int(updated.ClickCount),
+		CreatedAt:   utils.FormatNullTime(updated.CreatedAt),
+		Thumbnail:   utils.NullToStr(updated.Thumbnail),
+		ExpireAt:    utils.FormatNullTime(updated.ExpireAt),
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"message": "link updated successfully",
+		"data":    response,
+	})
+}
+
+func (c *URLController) GetQRCode(ctx *gin.Context) {
+	// print("Hello from GetQRCode")
+	shortcode := ctx.Param("shortcode")
+	if shortcode == "" {
+		ctx.JSON(400, gin.H{"error": "Shortcode is required"})
+		return
+	}
+	shortURL := configs.GetAPIURL() + "/s/" + shortcode
+
+	qrCode, err := utils.GenerateQRCode(shortURL, 256)
 	if err != nil {
 		ctx.JSON(500, gin.H{"error": "Failed to generate QR code"})
 		return
 	}
+
 	ctx.Header("Content-Type", "image/png")
-	// ctx.Data(200, "image/png", qrCode)
 	ctx.Writer.Write(qrCode)
 }
 
 func (c *URLController) GetQRCodeWithLogo(ctx *gin.Context) {
-	shortCode := ctx.Param("shortcode")
 	var req models.QRCodeWithLogoRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(400, gin.H{"error": "Invalid request body"})
 		return
 	}
 
-	url, err := c.store.GetOriginalURL(ctx, shortCode)
-	if err != nil {
-		ctx.JSON(404, gin.H{"error": "Short URL not found"})
+	if req.ExpiryDays < 0 {
+		req.ExpiryDays = 0
+	}
+	var expiry *time.Time
+	if req.ExpiryDays > 0 {
+		now := time.Now()
+		exp := now.Add(time.Duration(req.ExpiryDays) * 24 * time.Hour)
+		expiry = &exp
+		if time.Now().After(*expiry) {
+			ctx.JSON(410, gin.H{"error": "This QR code has expired"})
+			return
+		}
+	}
+
+	if req.Format == "" {
+		req.Format = "png"
+	}
+	if req.Format != "png" && req.Format != "jpeg" {
+		ctx.JSON(400, gin.H{"error": "Unsupported format. Use png or jpeg"})
 		return
 	}
-	shortURL := configs.GetAPIURL() + "/s/" + url.ShortCode
-	png, err := utils.GenerateQRCodeWithLogos(shortURL, req.LogoURL, 256)
+
+	// Foreground and background colors
+	if req.FgColor == "" {
+		req.FgColor = "#000000"
+	}
+	if req.BgColor == "" {
+		req.BgColor = "#ffffff"
+	}
+
+	fgColor, err := utils.ParseHexColor(req.FgColor)
+	if err != nil {
+		ctx.JSON(400, gin.H{"error": "Invalid fg_color format"})
+		return
+	}
+
+	bgColor, err := utils.ParseHexColor(req.BgColor)
+	if err != nil {
+		ctx.JSON(400, gin.H{"error": "Invalid bg_color format"})
+		return
+	}
+
+	if fgColor == bgColor {
+		ctx.JSON(400, gin.H{"error": "fg_color and bg_color cannot be the same"})
+		return
+	}
+
+	qrBytes, err := utils.GenerateQRCodeWithLogos(req.OriginalURL, req.LogoURL, 512, req.Format, fgColor, bgColor)
 	if err != nil {
 		ctx.JSON(500, gin.H{"error": "Failed to generate QR code with logo"})
 		return
 	}
-	ctx.Header("Content-Type", "image/png")
-	ctx.Writer.Write(png)
+
+	// case "svg":
+	// 	ctx.Header("Content-Type", "image/svg+xml")
+	switch req.Format {
+	case "jpeg":
+		ctx.Header("Content-Type", "image/jpeg")
+	default:
+		ctx.Header("Content-Type", "image/png")
+	}
+	ctx.Writer.Write(qrBytes)
 }
