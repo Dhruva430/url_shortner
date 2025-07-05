@@ -45,7 +45,7 @@ export interface QRCodeWithLogoRequest {
   fg_color?: string;
   bg_color?: string;
   format?: string; // e.g., "png", "jpeg"
-  expiry_days: number /* int */;
+  expire_at?: number /* int */;
 }
 
 //////////
@@ -63,19 +63,6 @@ export interface ShortURLResponse {
   thumbnail?: string;
   format?: string;
 }
-/**
- * 	type ShortURLDashboardItem struct {
- * 		ID          int64  `json:"id"`
- * 		Title       string `json:"title"`
- * 		OriginalURL string `json:"original_url"`
- * 		ShortURL    string `json:"short_url"`
- * 		Clicks      int    `json:"clicks"`
- * 		CreatedAt   string `json:"created_at"`
- * 		Thumbnail   string `json:"thumbnail"`
- * 		ExpireAt    string `json:"expire_at,omitempty"`
- * 		Password    bool   `json:"password,omitempty"`
- * 	}
- */
 export interface EditURLRequest {
   title: string;
   original_url: string;

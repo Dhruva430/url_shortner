@@ -15,7 +15,6 @@ export default function QrDialog({ open, onClose, link }: Props) {
   const url =
     "http://localhost:8080/api/protected/shorten/qr/" +
     link.short_url.split("/").pop();
-
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   if (!mounted || !open) return null;

@@ -4,7 +4,7 @@ import Input from "@/components/input";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import UsernameInput from "./usernameInput";
+import UsernameInput from "../../../components/usernameInput";
 
 const registerSchema = z
   .object({
