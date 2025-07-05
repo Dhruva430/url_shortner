@@ -53,12 +53,14 @@ func SetupRouter(store *db.Queries, conn *sql.DB) *gin.Engine {
 
 	protected.Use(middleware.JWTAuthMiddleware())
 
-	protected.POST("/shorten", URLController.CreateShortURL)
 	protected.GET("/shorten/qr/:shortcode", URLController.GetQRCode)
-	protected.POST("/shorten/qr-with-logo", URLController.GetQRCodeWithLogo)
 	protected.GET("/links", URLController.GetUserURLs)
-	protected.DELETE("/links/:shortcode", URLController.DeleteShortURL)
 	protected.GET("/title", titleController.GetPageTitle)
+	protected.DELETE("/links/:shortcode", URLController.DeleteShortURL)
+	protected.GET("/shorten/qr-with-logo", URLController.FetchQRCodeWithLogo)
+	// protected.POST("/shorten/qr-with-logo", URLController.SaveQRCodeWithLogo)
+
+	protected.POST("/shorten", URLController.CreateShortURL)
 	protected.POST("edit/:shortcode", URLController.UpdateShortURL)
 
 	protected.GET("/me", func(ctx *gin.Context) {

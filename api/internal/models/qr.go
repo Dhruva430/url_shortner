@@ -12,11 +12,10 @@ type QRCodeResponse struct {
 
 // #TODO: Add user logo link struct ****premium feature****
 type QRCodeWithLogoRequest struct {
-	OriginalURL string `json:"original_url" binding:"required"`
-	Shortcode   string `json:"shortcode,omitempty"`
+	OriginalURL string `json:"original_url,omitempty"`
 	LogoURL     string `json:"logo_url,omitempty"`
 	FgColor     string `json:"fg_color,omitempty"`
 	BgColor     string `json:"bg_color,omitempty"`
 	Format      string `json:"format,omitempty"` // e.g., "png", "jpeg"
-	ExpiryDays  int    `json:"expiry_days"`
+	ExpireAt    int    `json:"expire_at,omitempty"`
 }

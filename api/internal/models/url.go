@@ -15,17 +15,6 @@ type ShortURLResponse struct {
 	Format    string `json:"format,omitempty"`
 }
 
-//	type ShortURLDashboardItem struct {
-//		ID          int64  `json:"id"`
-//		Title       string `json:"title"`
-//		OriginalURL string `json:"original_url"`
-//		ShortURL    string `json:"short_url"`
-//		Clicks      int    `json:"clicks"`
-//		CreatedAt   string `json:"created_at"`
-//		Thumbnail   string `json:"thumbnail"`
-//		ExpireAt    string `json:"expire_at,omitempty"`
-//		Password    bool   `json:"password,omitempty"`
-//	}
 type EditURLRequest struct {
 	Title       string `json:"title"`
 	OriginalURL string `json:"original_url"`

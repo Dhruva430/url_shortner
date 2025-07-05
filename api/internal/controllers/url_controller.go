@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -30,7 +29,6 @@ func (c *URLController) CreateShortURL(ctx *gin.Context) {
 		ctx.Error(err)
 		return
 	}
-	fmt.Printf("Trying to parse: '%s'\n", req.ExpireAt)
 	var code string
 	if req.Shortcode != "" {
 		_, err := c.store.GetOriginalURL(ctx, req.Shortcode)
@@ -45,6 +43,7 @@ func (c *URLController) CreateShortURL(ctx *gin.Context) {
 	} else {
 		var err error
 		code, err = GetUniqueShortCode(ctx, c.store, 6, 10)
+		println("Generated shortcode:", code)
 		if err != nil {
 			ctx.JSON(500, gin.H{"error": "Failed to generate unique shortcode"})
 			return
@@ -87,7 +86,7 @@ func (c *URLController) CreateShortURL(ctx *gin.Context) {
 	}
 	thumbnail := "https://www.google.com/s2/favicons?sz=128&domain_url=" + domain
 
-	fmt.Printf("Parsed expiry date: %v\n", req.ExpireAt)
+	println("Generated shortcode:", code)
 	arg := db.CreateShortURLParams{
 		OriginalUrl:  req.OriginalURL,
 		ShortCode:    code,
@@ -281,20 +280,20 @@ func (c *URLController) GetQRCode(ctx *gin.Context) {
 	ctx.Writer.Write(qrCode)
 }
 
-func (c *URLController) GetQRCodeWithLogo(ctx *gin.Context) {
+func (c *URLController) SaveQRCodeWithLogo(ctx *gin.Context) {
 	var req models.QRCodeWithLogoRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(400, gin.H{"error": "Invalid request body"})
 		return
 	}
 
-	if req.ExpiryDays < 0 {
-		req.ExpiryDays = 0
+	if req.ExpireAt < 0 {
+		req.ExpireAt = 0
 	}
 	var expiry *time.Time
-	if req.ExpiryDays > 0 {
+	if req.ExpireAt > 0 {
 		now := time.Now()
-		exp := now.Add(time.Duration(req.ExpiryDays) * 24 * time.Hour)
+		exp := now.Add(time.Duration(req.ExpireAt) * 24 * time.Hour)
 		expiry = &exp
 		if time.Now().After(*expiry) {
 			ctx.JSON(410, gin.H{"error": "This QR code has expired"})
@@ -335,15 +334,67 @@ func (c *URLController) GetQRCodeWithLogo(ctx *gin.Context) {
 		return
 	}
 
-	qrBytes, err := utils.GenerateQRCodeWithLogos(req.OriginalURL, req.LogoURL, 512, req.Format, fgColor, bgColor)
+	qrBytes, err := utils.GenerateQRCodeWithLogos("short_url", req.LogoURL, 512, req.Format, fgColor, bgColor)
 	if err != nil {
 		ctx.JSON(500, gin.H{"error": "Failed to generate QR code with logo"})
 		return
 	}
 
-	// case "svg":
-	// 	ctx.Header("Content-Type", "image/svg+xml")
 	switch req.Format {
+	case "jpeg":
+		ctx.Header("Content-Type", "image/jpeg")
+	default:
+		ctx.Header("Content-Type", "image/png")
+	}
+	ctx.Writer.Write(qrBytes)
+}
+
+func (c *URLController) FetchQRCodeWithLogo(ctx *gin.Context) {
+	rawURL := ctx.Query("url")
+	fg_color := ctx.DefaultQuery("fg_color", "#000000")
+	bg_color := ctx.DefaultQuery("bg_color", "#ffffff")
+	logo_url := ctx.Query("logo_url")
+	format := ctx.Query("format")
+	// check format for png or jpeg
+	if format == "" {
+		format = "png"
+	}
+	if format != "png" && format != "jpeg" {
+		ctx.JSON(400, gin.H{"error": "Unsupported format. Use png or jpeg"})
+		return
+	}
+
+	if fg_color == "" {
+		fg_color = "#000000"
+	}
+	if bg_color == "" {
+		bg_color = "#ffffff"
+	}
+
+	fgColor, err := utils.ParseHexColor(fg_color)
+	if err != nil {
+		ctx.JSON(400, gin.H{"error": "Invalid fg_color format"})
+		return
+	}
+
+	bgColor, err := utils.ParseHexColor(bg_color)
+	if err != nil {
+		ctx.JSON(400, gin.H{"error": "Invalid bg_color format"})
+		return
+	}
+
+	if fgColor == bgColor {
+		ctx.JSON(400, gin.H{"error": "fg_color and bg_color cannot be the same"})
+		return
+	}
+
+	qrBytes, err := utils.GenerateQRCodeWithLogos(rawURL, logo_url, 512, "png", fgColor, bgColor)
+	if err != nil {
+		ctx.JSON(500, gin.H{"error": "Failed to generate QR code with logo"})
+		return
+	}
+
+	switch fg_color {
 	case "jpeg":
 		ctx.Header("Content-Type", "image/jpeg")
 	default:

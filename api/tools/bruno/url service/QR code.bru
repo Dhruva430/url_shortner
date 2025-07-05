@@ -5,7 +5,16 @@ meta {
 }
 
 get {
-  url: http://localhost:8080/api/shorten/Jfev3R/qr
+  url: http://localhost:8080/api/protected/shorten/qr-with-logo?url=https://www.linkedin.com/notifications/?filter=all&bg_color=#ffffff&fg_color=#000000&logo_url=https://img.freepik.com/free-vector/bird-colorful-gradient-design-vector_343694-2506.jpg?semt=ais_hybrid&w=740?format=png
   body: none
   auth: inherit
+}
+
+params:query {
+  url: https://www.linkedin.com/notifications/?filter=all
+  bg_color: 
+}
+
+script:pre-request {
+  req.setUrl(req.getUrl().replace(/(.+?\?).+/,'$1') +  encodeURIComponent(req.getUrl().replace(/.+?\?/,'')) .replaceAll('%2F', '/').replaceAll('%26', '&').replaceAll('%3D', '=') );
 }
