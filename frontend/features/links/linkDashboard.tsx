@@ -7,7 +7,7 @@ import { LinkData } from "@/features/links/types";
 import LinkPreviewDialog from "@/components/linkPreviewDialog";
 import { useQueryClient } from "@tanstack/react-query";
 import Card from "@/components/card";
-import QrDialog from "@/components/qrDialog";
+import QrDialog from "@/components/getQR";
 
 export default function LinksDashboard() {
   const [open, setOpen] = useState(false);

@@ -1,6 +1,5 @@
 import React from "react";
-import QRCodeCard from "./qrCodeCard";
-import QRCodeDialog from "./qrCodeDialog";
+import QRCodeDialog from "./qrLogoDialog";
 
 export default function QrCode() {
   return (

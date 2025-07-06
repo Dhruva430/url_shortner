@@ -6,6 +6,8 @@ import { Label } from "@components/ui/label";
 import { Calendar24 } from "@/components/calender";
 import Input from "@/components/input";
 import { cn } from "@/lib/utils";
+import ColorPicker from "@/components/colorPicker";
+import saveAs from "file-saver";
 
 type FormFields = {
   url: string;
@@ -22,8 +24,8 @@ const QRCodeDialog: React.FC = () => {
   const { register, setValue, watch } = useForm<FormFields>({
     defaultValues: {
       url: "",
-      bg_color: "#ffffff",
-      fg_color: "#000000",
+      bg_color: "",
+      fg_color: "",
       logo_url: "",
     },
   });
@@ -56,15 +58,52 @@ const QRCodeDialog: React.FC = () => {
     return () => clearTimeout(timeout);
   }, [watched]);
 
-  return (
-    <div className="w-full grid grid-cols-2 gap-4">
-      <form className="border border-black p-4 flex flex-col gap-3">
-        <h2 className="text-xl font-bold">QR Code Generator</h2>
+  const downloadQR = async () => {
+    if (!qrSrc) return;
 
-        <Input placeholder="Enter Short URL" {...register("url")} />
-        <Input placeholder="Enter Background Color" {...register("bg_color")} />
-        <Input placeholder="Enter Foreground Color" {...register("fg_color")} />
-        <Input placeholder="Enter Logo URL" {...register("logo_url")} />
+    try {
+      const res = await fetch(qrSrc, { credentials: "include" });
+
+      if (!res.ok) {
+        console.error("Failed to fetch QR image", res.status);
+        return;
+      }
+
+      const blob = await res.blob();
+      saveAs(blob, "qr-code.png");
+    } catch (err) {
+      console.error("Download failed", err);
+    }
+  };
+
+  return (
+    <div className="grid grid-cols-2 items-start gap-4 m-15  ">
+      <form className="border shadow p-4 flex flex-col gap-5 rounded-2xl">
+        <h2 className="text-xl text-center font-bold">QR Code Generator</h2>
+
+        <Input
+          label="Enter Url"
+          placeholder="Enter Short URL"
+          {...register("url")}
+        />
+        <div className="grid grid-cols-2 gap-2">
+          <ColorPicker
+            value={watched.bg_color || "#ffffff"}
+            onChange={(hex: string) => setValue("bg_color", hex)}
+            label="Background Color"
+            className="w-full"
+          />
+          <ColorPicker
+            value={watched.fg_color || "#000000"}
+            onChange={(hex: string) => setValue("fg_color", hex)}
+            label="Foreground Color"
+          />
+        </div>
+        <Input
+          label="Enter Image Url"
+          placeholder="Enter Logo URL"
+          {...register("logo_url")}
+        />
 
         <div className="flex items-center gap-2">
           <Switch
@@ -93,12 +132,30 @@ const QRCodeDialog: React.FC = () => {
         </div>
       </form>
 
-      <div className="border border-red-600 flex items-center justify-center">
+      <div className="max-w-sm mx-auto px-20 shadow-lg rounded-2xl p-6 border border-gray-200 flex flex-col items-center space-y-4">
+        <h2 className="text-lg font-semibold text-gray-700">Your QR Code</h2>
+
         {qrSrc ? (
-          <img src={qrSrc} alt="Generated QR" className="max-w-full max-h-72" />
+          <div className="rounded-xl overflow-hidden border border-gray-300 p-2 bg-gray-50">
+            <img
+              src={qrSrc}
+              alt="Generated QR"
+              className="w-48 h-48 object-contain"
+            />
+          </div>
         ) : (
-          <span className="text-sm text-gray-500">QR Preview</span>
+          <div className="w-48 h-48 flex items-center justify-center rounded-xl border border-dashed border-gray-300 bg-gray-50 text-gray-400 text-sm">
+            QR Preview
+          </div>
         )}
+
+        <button
+          onClick={downloadQR}
+          disabled={!qrSrc}
+          className="mt-2 px-4 py-2 text-sm font-medium bg-darkBackground cursor-pointer text-white rounded-lg transition duration-200"
+        >
+          Download QR
+        </button>
       </div>
     </div>
   );
