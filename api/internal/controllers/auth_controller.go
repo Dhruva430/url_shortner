@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -224,9 +225,11 @@ func (a *authController) ProviderCallback(ctx *gin.Context) {
 	}
 	user, err := provider.Callback(code)
 	if err != nil {
+		log.Printf("OAuth callback error: %v", err) // Add this line
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to authenticate with provider"})
 		return
 	}
+
 	store := ctx.MustGet("store").(*db.Queries)
 
 	dbUser, err := store.GetUserByEmail(ctx, user.Email)
@@ -239,7 +242,7 @@ func (a *authController) ProviderCallback(ctx *gin.Context) {
 			Username:     username,
 			PasswordHash: "",
 			Email:        user.Email,
-			IpAddress:    ctx.ClientIP(),
+			IpAddress:    utils.GetIP(ctx),
 		})
 		if err != nil {
 			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})

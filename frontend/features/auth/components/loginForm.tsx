@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import Input from "@/components/input";
+import AuthInput from "@/components/authInput";
 import { XIcon } from "lucide-react";
 import Link from "next/link";
 import z from "zod";
@@ -61,7 +61,7 @@ export default function LoginForm() {
           Username/Email
           <span className="text-red-500"> *</span>
         </label>
-        <Input
+        <AuthInput
           {...register("identifier")}
           type="text"
           id="email"
@@ -72,7 +72,7 @@ export default function LoginForm() {
         <label className="block text-[18px] mb-2" htmlFor="password">
           Password <span className="text-red-500"> *</span>
         </label>
-        <Input
+        <AuthInput
           {...register("password")}
           type="password"
           id="password"

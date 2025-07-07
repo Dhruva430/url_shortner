@@ -8,6 +8,16 @@ import (
 	"database/sql"
 )
 
+type QrCode struct {
+	ID        int32          `json:"id"`
+	UrlID     int32          `json:"url_id"`
+	QrCode    string         `json:"qr_code"`
+	FgColor   sql.NullString `json:"fg_color"`
+	BgColor   sql.NullString `json:"bg_color"`
+	ExpireAt  sql.NullTime   `json:"expire_at"`
+	CreatedAt sql.NullTime   `json:"created_at"`
+}
+
 type Url struct {
 	ID           int32          `json:"id"`
 	OriginalUrl  string         `json:"original_url"`
@@ -22,16 +32,17 @@ type Url struct {
 }
 
 type UrlVisit struct {
-	ID        int32          `json:"id"`
-	UrlID     int32          `json:"url_id"`
-	UserID    sql.NullInt32  `json:"user_id"`
-	IpAddress string         `json:"ip_address"`
-	UserAgent string         `json:"user_agent"`
-	Referrer  sql.NullString `json:"referrer"`
-	Country   sql.NullString `json:"country"`
-	Region    sql.NullString `json:"region"`
-	City      sql.NullString `json:"city"`
-	ClickedAt sql.NullTime   `json:"clicked_at"`
+	ID         int32          `json:"id"`
+	UrlID      int32          `json:"url_id"`
+	UserID     sql.NullInt32  `json:"user_id"`
+	IpAddress  string         `json:"ip_address"`
+	UserAgent  string         `json:"user_agent"`
+	DeviceType sql.NullString `json:"device_type"`
+	Referrer   sql.NullString `json:"referrer"`
+	Country    sql.NullString `json:"country"`
+	Region     sql.NullString `json:"region"`
+	City       sql.NullString `json:"city"`
+	ClickedAt  sql.NullTime   `json:"clicked_at"`
 }
 
 type User struct {

@@ -8,10 +8,48 @@ package db
 import (
 	"context"
 	"database/sql"
+	"time"
 )
 
+const countDeviceTypes = `-- name: CountDeviceTypes :many
+SELECT
+  COALESCE(device_type, 'unknown') AS device_type,
+  COUNT(*) AS count
+FROM url_visits
+WHERE url_id = (SELECT id FROM urls WHERE short_code = $1)
+GROUP BY device_type
+`
+
+type CountDeviceTypesRow struct {
+	DeviceType string `json:"device_type"`
+	Count      int64  `json:"count"`
+}
+
+func (q *Queries) CountDeviceTypes(ctx context.Context, shortCode string) ([]CountDeviceTypesRow, error) {
+	rows, err := q.db.QueryContext(ctx, countDeviceTypes, shortCode)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CountDeviceTypesRow
+	for rows.Next() {
+		var i CountDeviceTypesRow
+		if err := rows.Scan(&i.DeviceType, &i.Count); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const createOAuthUser = `-- name: CreateOAuthUser :one
-INSERT INTO users (username,email, ip_address, provider, provider_id, image)
+INSERT INTO users (username, email, ip_address, provider, provider_id, image)
 VALUES ($1, $2, $3, $4, $5, $6)
 RETURNING id, username, email, password_hash, ip_address, provider, provider_id, image, created_at, updated_at
 `
@@ -51,8 +89,18 @@ func (q *Queries) CreateOAuthUser(ctx context.Context, arg CreateOAuthUserParams
 }
 
 const createShortURL = `-- name: CreateShortURL :one
-INSERT INTO urls (original_url, short_code, title, password_hash, expire_at, user_id, thumbnail, click_count)
-VALUES ($1, $2, $3, $4, $5, $6, $7, 0)
+INSERT INTO urls (
+  original_url,
+  short_code,
+  title,
+  password_hash,
+  expire_at,
+  user_id,
+  thumbnail,
+  click_count
+) VALUES (
+  $1, $2, $3, $4, $5, $6, $7, 0
+)
 RETURNING id, original_url, title, short_code, thumbnail, click_count, password_hash, created_at, expire_at, user_id
 `
 
@@ -93,7 +141,7 @@ func (q *Queries) CreateShortURL(ctx context.Context, arg CreateShortURLParams) 
 }
 
 const createUser = `-- name: CreateUser :one
-INSERT INTO users (username, email, password_hash,ip_address)
+INSERT INTO users (username, email, password_hash, ip_address)
 VALUES ($1, $2, $3, $4)
 RETURNING id, username, email, password_hash, ip_address, provider, provider_id, image, created_at, updated_at
 `
@@ -152,7 +200,7 @@ SELECT
   v.city,
   u.user_id
 FROM urls u
-INNER JOIN url_visits v ON u.id = v.url_id
+JOIN url_visits v ON u.id = v.url_id
 WHERE u.short_code = $1
 ORDER BY v.clicked_at DESC
 `
@@ -206,9 +254,251 @@ func (q *Queries) GetAnalyticsShortcode(ctx context.Context, shortCode string) (
 	return items, nil
 }
 
+const getCountryVisitCounts = `-- name: GetCountryVisitCounts :many
+SELECT
+  COALESCE(country, '') AS country,   
+  COUNT(*)              AS clicks
+FROM url_visits
+WHERE clicked_at >= NOW() - ($1 * interval '1 day')
+GROUP BY country
+ORDER BY clicks DESC
+`
+
+type GetCountryVisitCountsRow struct {
+	Country string `json:"country"`
+	Clicks  int64  `json:"clicks"`
+}
+
+func (q *Queries) GetCountryVisitCounts(ctx context.Context, dollar_1 interface{}) ([]GetCountryVisitCountsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getCountryVisitCounts, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetCountryVisitCountsRow
+	for rows.Next() {
+		var i GetCountryVisitCountsRow
+		if err := rows.Scan(&i.Country, &i.Clicks); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getDailyClicksAndLinksGlobal = `-- name: GetDailyClicksAndLinksGlobal :many
+SELECT
+  d::date AS date,
+  COALESCE(clicks.count, 0) AS clicks,
+  COALESCE(links.count, 0) AS links
+FROM generate_series(
+         CURRENT_DATE - INTERVAL '6 days',
+         CURRENT_DATE,
+         INTERVAL '1 day'
+     ) AS d
+LEFT JOIN (
+    SELECT clicked_at::date AS date, COUNT(*) AS count
+    FROM url_visits
+    GROUP BY clicked_at::date
+) AS clicks ON clicks.date = d
+LEFT JOIN (
+    SELECT created_at::date AS date, COUNT(*) AS count
+    FROM urls
+    GROUP BY created_at::date
+) AS links ON links.date = d
+ORDER BY d
+`
+
+type GetDailyClicksAndLinksGlobalRow struct {
+	Date   time.Time `json:"date"`
+	Clicks int64     `json:"clicks"`
+	Links  int64     `json:"links"`
+}
+
+func (q *Queries) GetDailyClicksAndLinksGlobal(ctx context.Context) ([]GetDailyClicksAndLinksGlobalRow, error) {
+	rows, err := q.db.QueryContext(ctx, getDailyClicksAndLinksGlobal)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetDailyClicksAndLinksGlobalRow
+	for rows.Next() {
+		var i GetDailyClicksAndLinksGlobalRow
+		if err := rows.Scan(&i.Date, &i.Clicks, &i.Links); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getDashboardSummary = `-- name: GetDashboardSummary :one
+SELECT
+  COUNT(*) AS total_links,
+  COALESCE(SUM(click_count), 0)::BIGINT AS total_clicks,
+  COUNT(*) FILTER (
+    WHERE expire_at IS NULL OR expire_at > now()
+  ) AS active_links,
+  COUNT(*) FILTER (
+    WHERE expire_at IS NOT NULL AND expire_at <= now()
+  ) AS expired_links
+FROM urls
+`
+
+type GetDashboardSummaryRow struct {
+	TotalLinks   int64 `json:"total_links"`
+	TotalClicks  int64 `json:"total_clicks"`
+	ActiveLinks  int64 `json:"active_links"`
+	ExpiredLinks int64 `json:"expired_links"`
+}
+
+func (q *Queries) GetDashboardSummary(ctx context.Context) (GetDashboardSummaryRow, error) {
+	row := q.db.QueryRowContext(ctx, getDashboardSummary)
+	var i GetDashboardSummaryRow
+	err := row.Scan(
+		&i.TotalLinks,
+		&i.TotalClicks,
+		&i.ActiveLinks,
+		&i.ExpiredLinks,
+	)
+	return i, err
+}
+
+const getDeviceTypeStatsByShortCode = `-- name: GetDeviceTypeStatsByShortCode :many
+SELECT
+  COALESCE(device_type, 'unknown') AS device_type,
+  COUNT(*) AS count
+FROM url_visits v
+JOIN urls u ON u.id = v.url_id
+WHERE u.short_code = $1
+GROUP BY device_type
+`
+
+type GetDeviceTypeStatsByShortCodeRow struct {
+	DeviceType string `json:"device_type"`
+	Count      int64  `json:"count"`
+}
+
+func (q *Queries) GetDeviceTypeStatsByShortCode(ctx context.Context, shortCode string) ([]GetDeviceTypeStatsByShortCodeRow, error) {
+	rows, err := q.db.QueryContext(ctx, getDeviceTypeStatsByShortCode, shortCode)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetDeviceTypeStatsByShortCodeRow
+	for rows.Next() {
+		var i GetDeviceTypeStatsByShortCodeRow
+		if err := rows.Scan(&i.DeviceType, &i.Count); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getDeviceTypeStatsGlobal = `-- name: GetDeviceTypeStatsGlobal :many
+SELECT
+  COALESCE(device_type, 'unknown') AS device_type,
+  COUNT(*) AS count
+FROM url_visits
+GROUP BY device_type
+`
+
+type GetDeviceTypeStatsGlobalRow struct {
+	DeviceType string `json:"device_type"`
+	Count      int64  `json:"count"`
+}
+
+func (q *Queries) GetDeviceTypeStatsGlobal(ctx context.Context) ([]GetDeviceTypeStatsGlobalRow, error) {
+	rows, err := q.db.QueryContext(ctx, getDeviceTypeStatsGlobal)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetDeviceTypeStatsGlobalRow
+	for rows.Next() {
+		var i GetDeviceTypeStatsGlobalRow
+		if err := rows.Scan(&i.DeviceType, &i.Count); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getMonthlyClicksGlobal = `-- name: GetMonthlyClicksGlobal :many
+SELECT
+    to_char(month, 'Mon')   AS month,   -- "Jan", "Feb", …
+    COALESCE(c.count, 0)    AS clicks
+FROM generate_series(
+         date_trunc('month', CURRENT_DATE) - INTERVAL '11 months',
+         date_trunc('month', CURRENT_DATE),
+         INTERVAL '1 month'
+     ) AS month
+LEFT JOIN (
+    SELECT date_trunc('month', clicked_at) AS m, COUNT(*) AS count
+    FROM url_visits
+    GROUP BY m
+) AS c ON c.m = month
+ORDER BY month
+`
+
+type GetMonthlyClicksGlobalRow struct {
+	Month  string `json:"month"`
+	Clicks int64  `json:"clicks"`
+}
+
+func (q *Queries) GetMonthlyClicksGlobal(ctx context.Context) ([]GetMonthlyClicksGlobalRow, error) {
+	rows, err := q.db.QueryContext(ctx, getMonthlyClicksGlobal)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetMonthlyClicksGlobalRow
+	for rows.Next() {
+		var i GetMonthlyClicksGlobalRow
+		if err := rows.Scan(&i.Month, &i.Clicks); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getOriginalURL = `-- name: GetOriginalURL :one
 SELECT id, original_url, title, short_code, thumbnail, click_count, password_hash, created_at, expire_at, user_id FROM urls
 WHERE short_code = $1
+LIMIT 1
 `
 
 func (q *Queries) GetOriginalURL(ctx context.Context, shortCode string) (Url, error) {
@@ -230,8 +520,9 @@ func (q *Queries) GetOriginalURL(ctx context.Context, shortCode string) (Url, er
 }
 
 const getURLVisits = `-- name: GetURLVisits :many
-SELECT id, url_id, user_id, ip_address, user_agent, referrer, country, region, city, clicked_at FROM url_visits
+SELECT id, url_id, user_id, ip_address, user_agent, device_type, referrer, country, region, city, clicked_at FROM url_visits
 WHERE url_id = $1
+ORDER BY clicked_at DESC
 `
 
 func (q *Queries) GetURLVisits(ctx context.Context, urlID int32) ([]UrlVisit, error) {
@@ -249,6 +540,7 @@ func (q *Queries) GetURLVisits(ctx context.Context, urlID int32) ([]UrlVisit, er
 			&i.UserID,
 			&i.IpAddress,
 			&i.UserAgent,
+			&i.DeviceType,
 			&i.Referrer,
 			&i.Country,
 			&i.Region,
@@ -320,7 +612,9 @@ func (q *Queries) GetUrlsByUserID(ctx context.Context, userID sql.NullInt32) ([]
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, username, email, password_hash, ip_address, provider, provider_id, image, created_at, updated_at FROM users WHERE email = $1
+SELECT id, username, email, password_hash, ip_address, provider, provider_id, image, created_at, updated_at FROM users
+WHERE email = $1
+LIMIT 1
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
@@ -344,6 +638,7 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 const getUserByProvider = `-- name: GetUserByProvider :one
 SELECT id, username, email, password_hash, ip_address, provider, provider_id, image, created_at, updated_at FROM users
 WHERE provider = $1 AND provider_id = $2
+LIMIT 1
 `
 
 type GetUserByProviderParams struct {
@@ -370,7 +665,9 @@ func (q *Queries) GetUserByProvider(ctx context.Context, arg GetUserByProviderPa
 }
 
 const getUserByProviderID = `-- name: GetUserByProviderID :one
-SELECT id, username, email, password_hash, ip_address, provider, provider_id, image, created_at, updated_at FROM users WHERE provider = $1 AND provider_id = $2 LIMIT 1
+SELECT id, username, email, password_hash, ip_address, provider, provider_id, image, created_at, updated_at FROM users
+WHERE provider = $1 AND provider_id = $2
+LIMIT 1
 `
 
 type GetUserByProviderIDParams struct {
@@ -397,7 +694,9 @@ func (q *Queries) GetUserByProviderID(ctx context.Context, arg GetUserByProvider
 }
 
 const getUserByUsername = `-- name: GetUserByUsername :one
-SELECT id, username, email, password_hash, ip_address, provider, provider_id, image, created_at, updated_at FROM users WHERE username = $1
+SELECT id, username, email, password_hash, ip_address, provider, provider_id, image, created_at, updated_at FROM users
+WHERE username = $1
+LIMIT 1
 `
 
 func (q *Queries) GetUserByUsername(ctx context.Context, username string) (User, error) {
@@ -431,21 +730,30 @@ func (q *Queries) IncrementClickCount(ctx context.Context, shortCode string) err
 
 const logURLVisit = `-- name: LogURLVisit :exec
 INSERT INTO url_visits (
-  url_id, user_id, ip_address, user_agent, referrer, country, region, city
+  url_id,
+  user_id,
+  ip_address,
+  device_type,
+  user_agent,
+  referrer,
+  country,
+  region,
+  city
 ) VALUES (
-  $1, $2, $3, $4, $5, $6, $7, $8
+  $1, $2, $3, $4, $5, $6, $7, $8, $9
 )
 `
 
 type LogURLVisitParams struct {
-	UrlID     int32          `json:"url_id"`
-	UserID    sql.NullInt32  `json:"user_id"`
-	IpAddress string         `json:"ip_address"`
-	UserAgent string         `json:"user_agent"`
-	Referrer  sql.NullString `json:"referrer"`
-	Country   sql.NullString `json:"country"`
-	Region    sql.NullString `json:"region"`
-	City      sql.NullString `json:"city"`
+	UrlID      int32          `json:"url_id"`
+	UserID     sql.NullInt32  `json:"user_id"`
+	IpAddress  string         `json:"ip_address"`
+	DeviceType sql.NullString `json:"device_type"`
+	UserAgent  string         `json:"user_agent"`
+	Referrer   sql.NullString `json:"referrer"`
+	Country    sql.NullString `json:"country"`
+	Region     sql.NullString `json:"region"`
+	City       sql.NullString `json:"city"`
 }
 
 func (q *Queries) LogURLVisit(ctx context.Context, arg LogURLVisitParams) error {
@@ -453,6 +761,7 @@ func (q *Queries) LogURLVisit(ctx context.Context, arg LogURLVisitParams) error 
 		arg.UrlID,
 		arg.UserID,
 		arg.IpAddress,
+		arg.DeviceType,
 		arg.UserAgent,
 		arg.Referrer,
 		arg.Country,

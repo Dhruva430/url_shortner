@@ -40,8 +40,8 @@ func validateSlug(fl validator.FieldLevel) bool {
 	matched, _ := regexp.MatchString(`^[a-zA-Z0-9_-]+$`, slug)
 
 	return matched
-
 }
+
 func RegisterValidator() error {
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
 		v.RegisterValidation("username", validateUsername)

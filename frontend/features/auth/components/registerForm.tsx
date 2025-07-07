@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import Input from "@/components/input";
+import AuthInput from "@/components/authInput";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -67,7 +67,7 @@ export default function RegisterForm() {
           Email
           <span className="text-red-500"> *</span>
         </label>
-        <Input
+        <AuthInput
           {...register("email")}
           type="email"
           id="email"
@@ -81,7 +81,7 @@ export default function RegisterForm() {
         <label className="block text-[18px] mb-2 text-white" htmlFor="password">
           Password <span className="text-red-500"> *</span>
         </label>
-        <Input
+        <AuthInput
           {...register("password")}
           type="password"
           id="password"
@@ -96,7 +96,7 @@ export default function RegisterForm() {
         <label className="block text-[18px] mb-2 " htmlFor="confirm-password">
           Confirm Password <span className="text-red-500"> *</span>
         </label>
-        <Input
+        <AuthInput
           {...register("confirmPassword")}
           type="password"
           id="confirm-password"

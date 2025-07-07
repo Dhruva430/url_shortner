@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS url_visits (
     user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
     ip_address VARCHAR(45) NOT NULL,
     user_agent TEXT NOT NULL,
+    device_type VARCHAR(20),
     referrer TEXT,
     country VARCHAR(50),
     region VARCHAR(50),

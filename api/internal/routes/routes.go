@@ -58,6 +58,14 @@ func SetupRouter(store *db.Queries, conn *sql.DB) *gin.Engine {
 	protected.GET("/title", titleController.GetPageTitle)
 	protected.DELETE("/links/:shortcode", URLController.DeleteShortURL)
 	protected.GET("/shorten/qr-with-logo", URLController.FetchQRCodeWithLogo)
+
+	protected.GET("/analytics/summary", URLController.GetDashboardSummary)
+	protected.GET("/analytics/devices/:shortcode", URLController.GetDeviceTypeStats)
+	protected.GET("/analytics/devices", URLController.GetDeviceTypeStatsGlobal)
+	protected.GET("/analytics/line", URLController.GetLineChartStats)
+	protected.GET("/analytics/bar", URLController.GetMonthlyClicks)
+	protected.GET("/analytics/worldmap", URLController.GetWorldMapData)
+
 	// protected.POST("/shorten/qr-with-logo", URLController.SaveQRCodeWithLogo)
 
 	protected.POST("/shorten", URLController.CreateShortURL)

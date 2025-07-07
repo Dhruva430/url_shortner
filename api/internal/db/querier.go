@@ -10,11 +10,18 @@ import (
 )
 
 type Querier interface {
+	CountDeviceTypes(ctx context.Context, shortCode string) ([]CountDeviceTypesRow, error)
 	CreateOAuthUser(ctx context.Context, arg CreateOAuthUserParams) (User, error)
 	CreateShortURL(ctx context.Context, arg CreateShortURLParams) (Url, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	DeleteURLByShortCode(ctx context.Context, shortCode string) error
 	GetAnalyticsShortcode(ctx context.Context, shortCode string) ([]GetAnalyticsShortcodeRow, error)
+	GetCountryVisitCounts(ctx context.Context, dollar_1 interface{}) ([]GetCountryVisitCountsRow, error)
+	GetDailyClicksAndLinksGlobal(ctx context.Context) ([]GetDailyClicksAndLinksGlobalRow, error)
+	GetDashboardSummary(ctx context.Context) (GetDashboardSummaryRow, error)
+	GetDeviceTypeStatsByShortCode(ctx context.Context, shortCode string) ([]GetDeviceTypeStatsByShortCodeRow, error)
+	GetDeviceTypeStatsGlobal(ctx context.Context) ([]GetDeviceTypeStatsGlobalRow, error)
+	GetMonthlyClicksGlobal(ctx context.Context) ([]GetMonthlyClicksGlobalRow, error)
 	GetOriginalURL(ctx context.Context, shortCode string) (Url, error)
 	GetURLVisits(ctx context.Context, urlID int32) ([]UrlVisit, error)
 	GetUrlsByUserID(ctx context.Context, userID sql.NullInt32) ([]Url, error)
