@@ -64,8 +64,7 @@ func (a *authController) Register(ctx *gin.Context) {
 		return
 	}
 
-	ip := utils.GetIP(ctx)
-
+	ip := sql.NullString{String: utils.GetIP(ctx), Valid: true}
 	password, err := utils.HashPassword(req.Password)
 	if err != nil {
 		ctx.JSON(500, gin.H{"error": "Failed to hash password"})
@@ -213,42 +212,78 @@ func (a *authController) ProviderRedirect(ctx *gin.Context) {
 func (a *authController) ProviderCallback(ctx *gin.Context) {
 	providerName := ctx.Param("provider")
 	prov := oauth.Provider(providerName)
+
 	provider, ok := oauth.GetProvider(prov)
 	if !ok {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "unsupported provider"})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Unsupported provider"})
 		return
 	}
+
 	code := ctx.Query("code")
 	if code == "" {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "missing code parameter"})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Missing code parameter"})
 		return
 	}
+
 	user, err := provider.Callback(code)
 	if err != nil {
-		log.Printf("OAuth callback error: %v", err) // Add this line
+		log.Printf("OAuth callback error: %v", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to authenticate with provider"})
 		return
 	}
 
 	store := ctx.MustGet("store").(*db.Queries)
 
-	dbUser, err := store.GetUserByEmail(ctx, user.Email)
+	// Check if user exists by provider_id
+	args := db.GetUserByProviderIDParams{
+		Provider:   sql.NullString{String: user.Provider, Valid: true},
+		ProviderID: sql.NullString{String: user.ProviderID, Valid: true},
+	}
+	dbUser, err := store.GetUserByProviderID(ctx, args)
+
 	if err == sql.ErrNoRows {
-		username := user.Email
-		if user.Username != nil && *user.Username != "" {
-			username = *user.Username
+		// Try by email as fallback
+		dbUser, err = store.GetUserByEmail(ctx, user.Email)
+	}
+
+	if err == sql.ErrNoRows {
+		// User doesn't exist, generate unique username
+		baseUsername := utils.Slugify(*user.Username)
+		username := baseUsername
+		i := 1
+
+		for {
+			_, err := store.GetUserByUsername(ctx, username)
+			if err == sql.ErrNoRows {
+				break // username is available
+			}
+			username = fmt.Sprintf("%s-%d", baseUsername, i)
+			i++
 		}
-		dbUser, err = store.CreateUser(ctx, db.CreateUserParams{
+
+		log.Println("Generated username:", username)
+
+		dbUser, err = store.CreateOAuthUser(ctx, db.CreateOAuthUserParams{
 			Username:     username,
-			PasswordHash: "",
 			Email:        user.Email,
-			IpAddress:    utils.GetIP(ctx),
+			PasswordHash: "",
+			IpAddress:    sql.NullString{String: utils.GetIP(ctx), Valid: true},
+			Provider:     sql.NullString{String: user.Provider, Valid: true},
+			ProviderID:   sql.NullString{String: user.ProviderID, Valid: true},
+			Image: func() sql.NullString {
+				if user.AvatarURL != nil && *user.AvatarURL != "" {
+					return sql.NullString{String: *user.AvatarURL, Valid: true}
+				}
+				return sql.NullString{Valid: false}
+			}(),
 		})
 		if err != nil {
+			log.Printf("CreateOAuthUser error: %v", err)
 			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
 			return
 		}
 	} else if err != nil {
+		log.Printf("Error fetching user: %v", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch user"})
 		return
 	}
@@ -258,8 +293,10 @@ func (a *authController) ProviderCallback(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
 		return
 	}
-	ctx.SetCookie("token", token, 3600*24*10, "", "", false, true) // 10 days
-	redirectURL := "http://localhost:3000/dashboard?token=" + token
+
+	ctx.SetCookie("token", token, 3600*24*10, "", "", false, true)
+
+	redirectURL := "http://localhost:3000/dashboard"
 	ctx.Redirect(http.StatusFound, redirectURL)
 }
 
