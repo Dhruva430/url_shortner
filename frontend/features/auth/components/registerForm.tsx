@@ -33,7 +33,7 @@ export default function RegisterForm() {
   });
 
   const onSubmit = async (data: z.infer<typeof registerSchema>) => {
-    const url = "http://localhost:8080/api/register";
+    const url = "/api/register";
     const { username, email, password } = data;
     try {
       const response = await fetch(url, {

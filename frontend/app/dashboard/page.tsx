@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Link2, Eye, MonitorCheck, Calendar1 } from "lucide-react";
-import HardcodedPieChart from "@/features/charts/pieChart";
+import DevicePieChart from "@/features/charts/pieChart";
 import LineChart from "@/features/charts/lineChart";
 import { WorldMap } from "@/features/charts/worldMapChart";
 import BarChart from "@/features/charts/barChart";
@@ -22,12 +22,9 @@ export default function Dashboard() {
   useEffect(() => {
     async function fetchStats() {
       try {
-        const res = await fetch(
-          `http://localhost:8080/api/protected/analytics/summary`,
-          {
-            credentials: "include",
-          }
-        );
+        const res = await fetch(`/api/protected/analytics/summary`, {
+          credentials: "include",
+        });
         if (!res.ok) throw new Error(`Error ${res.status}`);
         const json: DashboardStats = await res.json();
         setStats(json);
@@ -37,6 +34,7 @@ export default function Dashboard() {
         setLoading(false);
       }
     }
+
     fetchStats();
   }, []);
 
@@ -71,11 +69,10 @@ export default function Dashboard() {
     n === undefined ? "-" : n.toLocaleString();
 
   return (
-    <div className="flex-1 space-y-4 p-8 pt-6">
-      {/* ----- Metric cards ----- */}
+    <div className="flex-1 space-y-4 p-6 pt-4">
+      {/* --- Metric Cards --- */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {loading ? (
-          // skeleton placeholders
           Array.from({ length: 4 }).map((_, i) => (
             <div
               key={i}
@@ -83,10 +80,8 @@ export default function Dashboard() {
             />
           ))
         ) : error ? (
-          // show error
           <p className="col-span-4 text-sm text-red-600">Error: {error}</p>
         ) : (
-          // real cards
           metricCards.map(({ title, value, icon, bg }, idx) => (
             <div
               key={idx}
@@ -108,56 +103,58 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* ----- Charts ----- */}
+      {/* --- Charts --- */}
       <div className="grid gap-4 md:grid-cols-2">
         {/* Pie */}
         <div className="rounded-lg border bg-white shadow-sm">
-          <div className="p-6 space-y-1.5">
+          <div className="p-6 pb-0 space-y-1.5">
             <h2 className="text-lg font-semibold tracking-tight text-black">
-              Link Clicks
+              Device Usage
             </h2>
             <p className="text-sm text-gray-500">
-              Number of clicks on your links over time.
+              Breakdown of devices used to visit your links.
             </p>
           </div>
-          <HardcodedPieChart />
+          <DevicePieChart />
         </div>
 
         {/* Line */}
         <div className="rounded-lg border bg-white shadow-sm">
-          <div className="p-6 space-y-1.5">
+          <div className="p-6 pb-0 space-y-1.5">
             <h2 className="text-lg font-semibold tracking-tight text-black">
               Link Performance
             </h2>
             <p className="text-sm text-gray-500">
               Growth of clicks and links created.
             </p>
-            <LineChart />
           </div>
+          <LineChart />
         </div>
 
-        {/* World map */}
-        <div className="rounded-lg border bg-white shadow-sm p-4">
-          <div className="p-6 space-y-1.5">
+        {/* World Map */}
+        <div className="rounded-lg border bg-white shadow-sm">
+          <div className="p-6 pb-0 space-y-1.5">
             <h2 className="text-lg font-semibold tracking-tight text-black">
               World Map
             </h2>
             <p className="text-sm text-gray-500">
-              Distribution of link clicks across the globe.
+              Geographic distribution of link visits.
             </p>
-            <WorldMap />
           </div>
+          <WorldMap />
         </div>
 
-        {/* Bar */}
-        <div className="rounded-lg border bg-white shadow-sm p-4">
-          <div className="p-6 space-y-1.5">
+        {/* Bar Chart */}
+        <div className="rounded-lg border bg-white shadow-sm flex flex-col">
+          <div className="p-6 pb-0 space-y-1.5">
             <h2 className="text-lg font-semibold tracking-tight text-black">
               Monthly Clicks
             </h2>
             <p className="text-sm text-gray-500">
-              Click totals for each month.
+              Total link clicks over the past year.
             </p>
+          </div>
+          <div className="flex flex-grow items-center justify-center ">
             <BarChart />
           </div>
         </div>

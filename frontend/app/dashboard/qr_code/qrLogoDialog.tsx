@@ -40,9 +40,7 @@ const QRCodeDialog: React.FC = () => {
         return;
       }
 
-      const newURL = new URL(
-        "http://localhost:8080/api/protected/shorten/qr-with-logo"
-      );
+      const newURL = new URL("/api/protected/shorten/qr-with-logo");
       newURL.search = "";
       newURL.searchParams.set("url", watched.url);
       newURL.searchParams.set("bg_color", watched.bg_color);

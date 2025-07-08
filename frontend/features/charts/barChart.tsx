@@ -1,9 +1,10 @@
+"use client";
 import React, { useEffect, useState } from "react";
 import { Chart } from "react-google-charts";
-
+import moment from "moment";
 interface ApiRow {
-  month: string; // "Jan", "Feb", …
-  clicks: number;
+  month: Date;
+  click_count: number;
 }
 
 const MONTH_ORDER = [
@@ -21,71 +22,86 @@ const MONTH_ORDER = [
   "Dec",
 ];
 
-export default function BarChart() {
-  const [table, setTable] = useState<(string | number)[][]>([]);
+const BarChart: React.FC = () => {
+  const [data, setData] = useState<(string | number)[][]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [maxClicks, setMaxClicks] = useState(0);
 
   useEffect(() => {
-    let cancel = false;
-
-    async function load() {
+    async function fetchData() {
       try {
-        const res = await fetch(
-          "http://localhost:8080/api/protected/analytics/bar",
-          { credentials: "include" }
-        );
-        if (!res.ok) throw new Error(`Status ${res.status}`);
+        const res = await fetch("/api/protected/analytics/bar", {
+          credentials: "include",
+        });
+        if (!res.ok) throw new Error(`Server error: ${res.status}`);
+
         let rows: ApiRow[] = await res.json();
 
-        // Sort by calendar order
-        rows.sort(
-          (a, b) => MONTH_ORDER.indexOf(a.month) - MONTH_ORDER.indexOf(b.month)
-        );
-
-        const max = Math.max(...rows.map((r) => r.clicks));
-
-        if (!cancel) {
-          const t: (string | number)[][] = [
-            ["Month", "Clicks"],
-            ...rows.map((r) => [r.month, r.clicks]),
-          ];
-          setTable(t);
-          setMaxClicks(max);
+        if (!Array.isArray(rows) || rows.length === 0) {
+          setData([]);
+          return;
         }
-      } catch (e: any) {
-        if (!cancel) setError(e.message);
+
+        let monthRows = rows.map((r) => ({
+          month: moment(r.month).format("MMM"),
+          clicks: r.click_count || 0,
+        }));
+        let data: Record<string, number> = {};
+
+        const currentMonthNum = moment().month();
+        console.log("Current month number:", currentMonthNum);
+        let monthsToShow = [
+          ...MONTH_ORDER.slice(currentMonthNum + 1),
+          ...MONTH_ORDER.slice(0, currentMonthNum + 1),
+        ];
+
+        MONTH_ORDER.forEach((month) => {
+          data[month] = 0;
+        });
+        const max = Math.max(...rows.map((r) => r.click_count));
+
+        monthRows.forEach((r) => {
+          data[r.month] += r.clicks;
+        });
+        monthRows = [];
+        monthsToShow.forEach((month) => {
+          monthRows.push({ month, clicks: data[month] });
+        });
+
+        const chartData: (string | number)[][] = [
+          ["Month", "Clicks"],
+          ...monthRows.map((r) => [r.month, r.clicks]),
+        ];
+        console.log("Chart data:", chartData);
+        console.log(rows);
+
+        setData(chartData);
+        setMaxClicks(max);
+      } catch (err: any) {
+        setError(err.message || "Unknown error");
       } finally {
-        if (!cancel) setLoading(false);
+        setLoading(false);
       }
     }
 
-    load();
-    return () => {
-      cancel = true;
-    };
+    fetchData();
   }, []);
-
-  const options = {
+  console.log("Bar chart data:", data);
+  const chartOptions = {
     colors: ["#2a9d90"],
     chartArea: { width: "70%", height: "70%" },
     height: 400,
     width: 600,
-
     hAxis: {
       title: "Total Clicks",
-
       format: "#,###",
       viewWindow: { min: 0 },
       ticks: (() => {
         const ticks = [];
         const step = Math.max(1, Math.floor(maxClicks / 5));
-        for (let i = 0; i <= maxClicks; i += step) {
-          ticks.push(i);
-        }
+        for (let i = 0; i <= maxClicks; i += step) ticks.push(i);
         if (ticks[ticks.length - 1] !== maxClicks) ticks.push(maxClicks);
-        console.log("Ticks:", ticks);
         return ticks;
       })(),
     },
@@ -97,6 +113,9 @@ export default function BarChart() {
 
   if (loading) return <p>Loading bar chart…</p>;
   if (error) return <p style={{ color: "red" }}>Error: {error}</p>;
-  if (table.length <= 1) return <p>No click data for the last 12 months.</p>;
-  return <Chart chartType="Bar" data={table} options={options} />;
-}
+  if (data.length <= 1) return <p>No click data for the last 12 months.</p>;
+
+  return <Chart chartType="Bar" data={data} options={chartOptions} />;
+};
+
+export default BarChart;

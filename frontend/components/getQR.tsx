@@ -12,9 +12,9 @@ type Props = {
 };
 
 export default function QrDialog({ open, onClose, link }: Props) {
-  const url =
-    "http://localhost:8080/api/protected/shorten/qr/" +
-    link.short_url.split("/").pop();
+  const shortcode = link?.short_url?.split("/")?.filter(Boolean).pop();
+  const url = `/api/protected/shorten/qr/${shortcode}`;
+
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   if (!mounted || !open) return null;
@@ -41,7 +41,7 @@ export default function QrDialog({ open, onClose, link }: Props) {
           Scan this QR code to access your shortened link
         </p>
 
-        <div className="w-48 h-48 mx-auto mb-6 flex items-center justify-center border border-gray-300 rounded-lg">
+        <div className="w-48 h-48 mx-auto mb-6 flex items-center justify-center border border-gray-300 ">
           <img
             src={url}
             alt="QR Code"
@@ -61,9 +61,7 @@ export default function QrDialog({ open, onClose, link }: Props) {
             Download QR Code
           </button>
           <button
-            onClick={() =>
-              window.navigator.clipboard.writeText.bind(link.short_url)
-            }
+            onClick={() => window.navigator.clipboard.writeText(link.short_url)}
             className="px-4 py-2 border rounded-md text-sm hover:bg-gray-100 cursor-pointer"
           >
             Copy Link

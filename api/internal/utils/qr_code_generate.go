@@ -19,7 +19,8 @@ import (
 )
 
 func GenerateQRCode(url string, size int) ([]byte, error) {
-	qr, err := qrcode.New(url, qrcode.High)
+	print(url)
+	qr, err := qrcode.New(url, qrcode.Highest)
 	if err != nil {
 		return nil, err
 	}

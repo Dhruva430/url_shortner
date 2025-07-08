@@ -17,9 +17,7 @@ export function useFetchTitle(url: string) {
 
       try {
         const res = await fetch(
-          `http://localhost:8080/api/protected/title?url=${encodeURIComponent(
-            url
-          )}`,
+          `/api/protected/title?url=${encodeURIComponent(url)}`,
           {
             signal: controller.signal,
             credentials: "include",

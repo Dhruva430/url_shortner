@@ -1,3 +1,4 @@
+"use client";
 import React, { useEffect, useState } from "react";
 import {
   LineChart,
@@ -20,7 +21,9 @@ interface DataPoint extends RawDataPoint {
 }
 
 const formatDate = (d: string) =>
-  `${new Date(d).getDate()} ${new Date(d).toLocaleString("default", {
+  `${String(new Date(d).getDate()).padStart(2, "0")} ${new Date(
+    d
+  ).toLocaleString("default", {
     month: "short",
   })}`;
 
@@ -32,14 +35,13 @@ const CustomTooltip: React.FC<
 > = ({ active, payload, label, hoveredKey }) => {
   if (!active || !payload?.length) return null;
 
-  // keep only the series that is currently hovered
   const items = hoveredKey
     ? payload.filter((p) => p.dataKey === hoveredKey)
     : payload;
 
   return (
-    <div className="rounded-md bg-white p-2 shadow-sm">
-      <p className="font-semibold mb-1">{label}</p>
+    <div className="rounded-md bg-white p-3 shadow-sm text-sm border border-gray-200">
+      <p className="font-semibold mb-1 text-gray-800">{label}</p>
       {items.map((item) => (
         <p key={item.dataKey} style={{ color: item.color }}>
           {item.name}: {item.value}
@@ -53,16 +55,15 @@ const CustomTooltip: React.FC<
 const MyLineChart: React.FC = () => {
   const [data, setData] = useState<DataPoint[]>([]);
   const [loading, setLoading] = useState(true);
-  const [hoveredKey, setHoveredKey] = useState<string | null>(null); // track which line is under the mouse
+  const [hoveredKey, setHoveredKey] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch(
-          "http://localhost:8080/api/protected/analytics/line?days=7",
-          { credentials: "include" }
-        );
+        const res = await fetch("/api/protected/analytics/line?days=7", {
+          credentials: "include",
+        });
         if (!res.ok) throw new Error(`Status ${res.status}`);
         const raw: RawDataPoint[] = await res.json();
         if (!cancelled) {
@@ -84,9 +85,9 @@ const MyLineChart: React.FC = () => {
   return (
     <div className="w-full">
       {loading ? (
-        <p>Loading chart…</p>
+        <p className="text-gray-500">Loading chart…</p>
       ) : data.length === 0 ? (
-        <p>No data found.</p>
+        <p className="text-gray-500">No data found.</p>
       ) : (
         <ResponsiveContainer width="100%" height={300}>
           <LineChart
@@ -96,18 +97,16 @@ const MyLineChart: React.FC = () => {
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="formattedDate" />
             <YAxis domain={[0, "auto"]} allowDecimals={false} />
-            {/* 3. Plug in custom tooltip */}
             <Tooltip
               content={(props) => (
                 <CustomTooltip {...props} hoveredKey={hoveredKey} />
               )}
             />
             <Legend />
-            {/* 4. Track mouse enter/leave for each line */}
             <Line
               type="monotone"
               dataKey="clicks"
-              name="Clicks"
+              name="Total Clicks"
               stroke="#00b3b3"
               strokeWidth={2}
               dot={{ r: 4, fill: "#fff", stroke: "#00b3b3", strokeWidth: 2 }}
@@ -118,7 +117,7 @@ const MyLineChart: React.FC = () => {
             <Line
               type="monotone"
               dataKey="links"
-              name="New Links Clicks"
+              name="New Links Created"
               stroke="#f25c54"
               strokeWidth={2}
               dot={{ r: 4, fill: "#fff", stroke: "#f25c54", strokeWidth: 2 }}

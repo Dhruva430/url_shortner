@@ -8,7 +8,7 @@ export function useAuth() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("http://localhost:8080/api/protected/me", {
+    fetch("/api/protected/me", {
       credentials: "include",
     })
       .then((res) => {

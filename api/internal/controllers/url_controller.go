@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -145,41 +146,52 @@ func (c *URLController) GetUserURLs(ctx *gin.Context) {
 
 func (c *URLController) RedirectToOriginalURL(ctx *gin.Context) {
 	shortCode := ctx.Param("shortcode")
+	password := ctx.Query("password")
+
 	url, err := c.store.GetOriginalURL(ctx, shortCode)
 	if err != nil {
-		ctx.JSON(404, gin.H{"error": "Short URL not found"})
+		ctx.JSON(http.StatusNotFound, gin.H{"error": "Short URL not found"})
 		return
 	}
+
 	if url.ExpireAt.Valid && url.ExpireAt.Time.Before(time.Now()) {
-		ctx.JSON(410, gin.H{"error": "This short URL has expired"})
+		ctx.JSON(http.StatusGone, gin.H{"error": "This short URL has expired"})
 		return
+	}
+
+	// Check password if protected
+	if url.PasswordHash.Valid && url.PasswordHash.String != "" {
+		if password == "" {
+			ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Password required"})
+			return
+		}
+		if !utils.CheckPasswordHash(password, url.PasswordHash.String) {
+			ctx.JSON(http.StatusForbidden, gin.H{"error": "Invalid password"})
+			return
+		}
 	}
 
 	ipAddress := utils.GetIP(ctx)
 	userAgent := ctx.Request.UserAgent()
 	referrer := ctx.Request.Referer()
-	urlID := int32(url.ID)
 	deviceType := utils.DetectDeviceTypeUA(userAgent)
-	print(userAgent)
-	print(deviceType)
+	urlID := int32(url.ID)
 
-	go func(shortCode string, urlID int32, device_type, ipAddress, userAgent, referrer string) {
+	go func(shortCode string, urlID int32, deviceType, ipAddress, userAgent, referrer string) {
 		_ = c.store.IncrementClickCount(context.Background(), shortCode)
 
 		country, region, city := utils.ResolveGeoLocation(ipAddress)
 
-		visit := db.LogURLVisitParams{
+		_ = c.store.LogURLVisit(context.Background(), db.LogURLVisitParams{
 			UrlID:      urlID,
-			IpAddress:  ipAddress,
-			UserAgent:  userAgent,
+			IpAddress:  sql.NullString{String: ipAddress, Valid: ipAddress != ""},
+			UserAgent:  sql.NullString{String: userAgent, Valid: userAgent != ""},
 			DeviceType: sql.NullString{String: deviceType, Valid: deviceType != ""},
 			Referrer:   sql.NullString{String: referrer, Valid: referrer != ""},
 			Country:    sql.NullString{String: country, Valid: country != ""},
 			Region:     sql.NullString{String: region, Valid: region != ""},
 			City:       sql.NullString{String: city, Valid: city != ""},
-		}
-
-		_ = c.store.LogURLVisit(context.Background(), visit)
+		})
 	}(shortCode, urlID, deviceType, ipAddress, userAgent, referrer)
 
 	ctx.Redirect(http.StatusFound, url.OriginalUrl)
@@ -433,68 +445,131 @@ func (c *URLController) FetchQRCodeWithLogo(ctx *gin.Context) {
 }
 
 func (c *URLController) GetDeviceTypeStats(ctx *gin.Context) {
-	shortCode := ctx.Param("shortcode")
-	if shortCode == "" {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "shortcode is required"})
+	userIDVal, exists := ctx.Get("user_id")
+	if !exists {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
 	}
 
-	stats, err := c.store.GetDeviceTypeStatsByShortCode(ctx, shortCode)
+	userID, ok := userIDVal.(int64)
+	if !ok {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user ID type"})
+		return
+	}
+
+	params := sql.NullInt32{
+		Int32: int32(userID),
+		Valid: true,
+	}
+
+	stats, err := c.store.GetDeviceTypeStatsByUser(ctx, params)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch device stats"})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch device type stats"})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, stats)
-}
-
-func (c *URLController) GetDeviceTypeStatsGlobal(ctx *gin.Context) {
-	stats, err := c.store.GetDeviceTypeStatsGlobal(ctx)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch device stats"})
-		return
+	// 🛠️ Ensure non-nil slice is returned
+	if stats == nil {
+		stats = []db.GetDeviceTypeStatsByUserRow{}
 	}
+
 	ctx.JSON(http.StatusOK, stats)
 }
 
 func (c *URLController) GetLineChartStats(ctx *gin.Context) {
-	data, err := c.store.GetDailyClicksAndLinksGlobal(ctx)
+	userIDVal, exists := ctx.Get("user_id")
+	if !exists {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	userID, ok := userIDVal.(int64)
+	if !ok {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user ID type"})
+		return
+	}
+
+	data, err := c.store.GetDailyClicksAndLinksByUser(ctx, sql.NullInt32{
+		Int32: int32(userID),
+		Valid: true,
+	})
 	if err != nil {
+		fmt.Printf("Error from GetDailyClicksAndLinksByUser: %v\n", err) // Log error for debug
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load chart data"})
 		return
 	}
+
+	if data == nil {
+		data = []db.GetDailyClicksAndLinksByUserRow{}
+	}
+
 	ctx.JSON(http.StatusOK, data)
 }
 
 func (c *URLController) GetMonthlyClicks(ctx *gin.Context) {
-	rows, err := c.store.GetMonthlyClicksGlobal(ctx)
+	userIDVal, exists := ctx.Get("user_id")
+	if !exists {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	userID, ok := userIDVal.(int64)
+	if !ok {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user ID type"})
+		return
+	}
+
+	rows, err := c.store.GetMonthlyClicksByUser(ctx, sql.NullInt32{
+		Int32: int32(userID),
+		Valid: true,
+	})
 	if err != nil {
+		fmt.Println("GetMonthlyClicksByUser ERROR:", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load bar chart data"})
 		return
 	}
+
 	ctx.JSON(http.StatusOK, rows)
 }
 
 func (a *URLController) GetWorldMapData(ctx *gin.Context) {
+	userID := ctx.GetInt64("user_id")
+
 	daysStr := ctx.DefaultQuery("days", "30")
 	days, err := strconv.Atoi(daysStr)
 	if err != nil || days <= 0 {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid days"})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid days parameter"})
 		return
 	}
 
-	visits, err := a.store.GetCountryVisitCounts(ctx, int32(days))
+	args := db.GetCountryVisitCountsByUserParams{UserID: sql.NullInt32{Int32: int32(userID), Valid: true}, Days: int32(days)}
+	stats, err := a.store.GetCountryVisitCountsByUser(ctx, args)
+	fmt.Println(stats)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch country stats"})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, visits)
+	ctx.JSON(http.StatusOK, stats)
 }
 
-func (a *URLController) GetDashboardSummary(ctx *gin.Context) {
-	// No user‑id parameter any more → just call it
-	summary, err := a.store.GetDashboardSummary(ctx)
+func (a *URLController) GetDashboardData(ctx *gin.Context) {
+	userIDVal, exists := ctx.Get("user_id")
+	if !exists {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	userID, ok := userIDVal.(int64)
+	if !ok {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user id"})
+		return
+	}
+
+	summary, err := a.store.GetDashboardSummaryByUser(ctx, sql.NullInt32{
+		Int32: int32(userID),
+		Valid: true,
+	})
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

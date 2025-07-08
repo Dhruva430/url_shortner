@@ -20,7 +20,7 @@ export default function Register() {
           </div>
 
           <button
-            onClick={() => router.push("http://localhost:8080/api/auth/google")}
+            onClick={() => router.push("/api/auth/google")}
             className="w-full p-4  flex justify-center gap-2 bg-black hover:bg-gray-500 transition-colors rounded mb-4 cursor-pointer"
           >
             <GoogleIcon className="size-5" />

@@ -10,7 +10,7 @@ export default function UsernameInput({ register, errors, control }: any) {
   useEffect(() => {
     if (username) {
       const timeout = setTimeout(async () => {
-        const url = `http://localhost:8080/api/check-username?username=${username}`;
+        const url = `/api/check-username?username=${username}`;
         try {
           const response = await fetch(url, {
             method: "GET",

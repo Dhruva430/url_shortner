@@ -26,7 +26,7 @@ export default function LoginForm() {
     resolver: zodResolver(loginSchema),
   });
   const onSubmit = async (data: LoginSchema) => {
-    const url = "http://localhost:8080/api/login";
+    const url = "/api/login";
     const { identifier, password } = data;
     try {
       const response = await fetch(url, {

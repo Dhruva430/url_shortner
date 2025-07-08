@@ -35,8 +35,8 @@ type UrlVisit struct {
 	ID         int32          `json:"id"`
 	UrlID      int32          `json:"url_id"`
 	UserID     sql.NullInt32  `json:"user_id"`
-	IpAddress  string         `json:"ip_address"`
-	UserAgent  string         `json:"user_agent"`
+	IpAddress  sql.NullString `json:"ip_address"`
+	UserAgent  sql.NullString `json:"user_agent"`
 	DeviceType sql.NullString `json:"device_type"`
 	Referrer   sql.NullString `json:"referrer"`
 	Country    sql.NullString `json:"country"`
@@ -50,7 +50,7 @@ type User struct {
 	Username     string         `json:"username"`
 	Email        string         `json:"email"`
 	PasswordHash string         `json:"password_hash"`
-	IpAddress    string         `json:"ip_address"`
+	IpAddress    sql.NullString `json:"ip_address"`
 	Provider     sql.NullString `json:"provider"`
 	ProviderID   sql.NullString `json:"provider_id"`
 	Image        sql.NullString `json:"image"`

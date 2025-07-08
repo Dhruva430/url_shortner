@@ -1,9 +1,11 @@
 package utils
 
 import (
-	"api/internal/db"
 	"context"
 	"regexp"
+	"strings"
+
+	"api/internal/db"
 )
 
 func IsEmail(input string) bool {
@@ -13,7 +15,6 @@ func IsEmail(input string) bool {
 }
 
 func GetUserByIdentifier(ctx context.Context, store *db.Queries, identifier string) (*db.User, error) {
-
 	if IsEmail(identifier) {
 		user, err := store.GetUserByEmail(ctx, identifier)
 		if err != nil {
@@ -26,4 +27,12 @@ func GetUserByIdentifier(ctx context.Context, store *db.Queries, identifier stri
 		return nil, err
 	}
 	return &user, nil
+}
+
+func Slugify(input string) string {
+	input = strings.ToLower(input)
+	input = strings.TrimSpace(input)
+	input = strings.ReplaceAll(input, " ", "_")
+	re := regexp.MustCompile(`[^a-z0-9_]+`)
+	return re.ReplaceAllString(input, "")
 }

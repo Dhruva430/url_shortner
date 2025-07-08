@@ -71,15 +71,12 @@ export default function EditLinkDialog({
 
   const onSubmit = async (formData: EditLinkData) => {
     try {
-      const res = await fetch(
-        `http://localhost:8080/api/protected/edit/${shortCode}`,
-        {
-          method: "POST",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(formData),
-        }
-      );
+      const res = await fetch(`/api/protected/edit/${shortCode}`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
       const result = await res.json();
       const data = result.data;
       if (!res.ok) {

@@ -28,13 +28,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useRouter } from "next/navigation";
+import clsx from "clsx";
+import { useRouter, usePathname } from "next/navigation";
 
 export default function AppSidebar() {
   const router = useRouter();
+  const pathname = usePathname();
   const handleLogout = async () => {
     try {
-      await fetch("http://localhost:8080/api/logout", {
+      await fetch("/api/logout", {
         method: "GET",
         credentials: "include",
       });
@@ -43,6 +45,13 @@ export default function AppSidebar() {
       console.error("Logout failed:", error);
     }
   };
+
+  const base =
+    "data-[slot=sidebar-menu-button]:!p-6 shadow flex items-center gap-3 transition-colors";
+
+  const active = "bg-[#aedde5] text-black";
+  const idle = "text-white hover:bg-gray-700 hover:text-white";
+
   const items = [
     {
       href: "/dashboard",
@@ -77,22 +86,30 @@ export default function AppSidebar() {
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Application</SidebarGroupLabel>
+          <span className="h-px w-full block bg-gray-500" />
+          <SidebarGroupLabel className="!px-4 !py-4 font-bold">
+            Application
+          </SidebarGroupLabel>
+          <span className="h-px w-full block bg-gray-500" />
           <SidebarGroupContent>
             <SidebarMenu>
-              {items.map((item) => (
-                <SidebarMenuItem key={item.label}>
-                  <SidebarMenuButton
-                    asChild
-                    className="data-[slot=sidebar-menu-button]:!p-1.5"
-                  >
-                    <a href={item.href}>
-                      {item.icon}
-                      <span>{item.label}</span>
-                    </a>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {items.map((item) => {
+                const isActive = pathname === item.href;
+
+                return (
+                  <SidebarMenuItem key={item.label}>
+                    <SidebarMenuButton
+                      asChild
+                      className={clsx(base, isActive ? active : idle)}
+                    >
+                      <a href={item.href}>
+                        {item.icon}
+                        <span>{item.label}</span>
+                      </a>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

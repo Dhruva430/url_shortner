@@ -1,8 +1,9 @@
 package errors
 
 import (
-	"api/internal/utils"
 	"net/http"
+
+	"api/internal/utils"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"

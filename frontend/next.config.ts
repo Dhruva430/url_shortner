@@ -2,37 +2,50 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   webpack(config) {
-    // Grab the existing rule that handles SVG imports
     const fileLoaderRule = config.module.rules.find((rule: any) =>
-      rule.test?.test?.('.svg'),
-    )
+      rule.test?.test?.(".svg"),
+    );
 
     config.module.rules.push(
-      // Reapply the existing rule, but only for svg imports ending in ?url
       {
         ...fileLoaderRule,
         test: /\.svg$/i,
         resourceQuery: /url/, // *.svg?url
       },
-      // Convert all other *.svg imports to React components
       {
         test: /\.svg$/i,
         issuer: fileLoaderRule.issuer,
-        resourceQuery: { not: [...fileLoaderRule.resourceQuery.not, /url/] }, // exclude if *.svg?url
-        use: ['@svgr/webpack'],
+        resourceQuery: { not: [...fileLoaderRule.resourceQuery.not, /url/] },
+        use: ["@svgr/webpack"],
+      }
+    );
+
+    fileLoaderRule.exclude = /\.svg$/i;
+
+    return config;
+  },
+
+  turbopack: {
+    rules: {
+      "*.svg": {
+        loaders: ["@svgr/webpack"],
+        as: "*.js",
       },
-    )
+    },
+  },
 
-    // Modify the file loader rule to ignore *.svg, since we have it handled now.
-    fileLoaderRule.exclude = /\.svg$/i
-
-    return config
-  },turbopack:{
-    rules:{
-      "*.svg":{loaders:["@svgr/webpack"],as:"*.js"},
-
-    }
-  }
+    async rewrites() {
+    return [
+      {
+        source: "/api/:path*",
+        destination: "http://localhost:8080/api/:path*", // this tells Next.js to proxy to Go backend
+      },
+      {
+        source: "/s/:path*",
+        destination: "http://localhost:8080/s/:path*", // proxy to protected routes
+      }
+    ];
+  },
 };
 
 export default nextConfig;

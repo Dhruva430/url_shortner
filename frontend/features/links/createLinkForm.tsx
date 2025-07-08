@@ -47,17 +47,14 @@ export default function CreateLinkForm({ onClose }: CreateLinkFormProps) {
 
   const queryClient = useQueryClient();
   const onSubmit = async (data: FormData) => {
-    const response = await fetch(
-      "http://localhost:8080/api/protected/shorten",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify(data),
-      }
-    );
+    const response = await fetch("/api/protected/shorten", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify(data),
+    });
     const result = await response.json();
     if (!response.ok) {
       throw new Error(result.message || "Network response was not ok");

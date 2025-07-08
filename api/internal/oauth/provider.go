@@ -52,7 +52,7 @@ type GoogleProvider struct {
 }
 
 func GetCallbackUrl(provider Provider) string {
-	return fmt.Sprintf("http://localhost:8080/api/auth/%s/callback", provider)
+	return fmt.Sprintf("http://localhost:3000/api/auth/%s/callback", provider)
 }
 
 func (P *GoogleProvider) RedirectURL(provider Provider) (*url.URL, error) {

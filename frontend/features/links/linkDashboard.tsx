@@ -18,7 +18,7 @@ export default function LinksDashboard() {
   const [qrLink, setQrLink] = useState<LinkData | null>(null);
 
   const shortCode = qrLink?.short_url.split("/").pop();
-  const qrImage = "http://localhost:8080/api/protected/links/${shortcode}";
+  const qrImage = "/api/protected/links/${shortcode}";
 
   const handleQrCode = (link: LinkData) => {
     setQrLink(link);
@@ -43,7 +43,7 @@ export default function LinksDashboard() {
       return;
     }
 
-    await fetch(`http://localhost:8080/api/protected/links/${shortcode}`, {
+    await fetch(`/api/protected/links/${shortcode}`, {
       method: "DELETE",
       credentials: "include",
     });

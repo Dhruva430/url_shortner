@@ -11,7 +11,7 @@ export function useLinks() {
   } = useQuery<LinkData[]>({
     queryKey: ["links"],
     queryFn: async () => {
-      const res = await fetch("http://localhost:8080/api/protected/links", {
+      const res = await fetch("/api/protected/links", {
         credentials: "include",
       });
 

@@ -62,7 +62,7 @@ export default function Card({
           href={link.short_url}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-blue-400 underline break-all cursor-pointer text-sm pb-2 px-2"
+          className="text-blue-400 w-80 underline break-all cursor-pointer text-sm pb-2 px-2"
         >
           {link.short_url}
         </a>

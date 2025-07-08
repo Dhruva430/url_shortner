@@ -1,3 +1,4 @@
+"use client";
 import React, { useEffect, useState } from "react";
 import {
   PieChart,
@@ -9,14 +10,14 @@ import {
 } from "recharts";
 
 type ApiRow = {
-  device_type: "desktop" | "mobile" | "tablet" | "unknown";
+  device_type: string;
   count: number;
 };
 
 type DeviceType = "desktop" | "mobile" | "tablet" | "unknown";
 
 type DataItem = {
-  name: string;
+  name: DeviceType; // enforce type
   value: number;
   trend: "up" | "down" | "same";
 };
@@ -28,6 +29,8 @@ const COLORS: Record<DeviceType, string> = {
   unknown: "#888888",
 };
 
+const DEVICE_TYPES: DeviceType[] = ["desktop", "mobile", "tablet", "unknown"];
+
 const DevicePieChart: React.FC = () => {
   const [data, setData] = useState<DataItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -38,42 +41,38 @@ const DevicePieChart: React.FC = () => {
 
     async function load() {
       try {
-        const res = await fetch(
-          "http://localhost:8080/api/protected/analytics/devices",
-          {
-            credentials: "include",
-          }
-        );
+        const res = await fetch("/api/protected/analytics/devices", {
+          credentials: "include",
+        });
+
         if (!res.ok) throw new Error(`Status ${res.status}`);
 
-        const rows: ApiRow[] = await res.json();
+        const rows: ApiRow[] | null = await res.json();
         if (cancelled) return;
 
-        const deviceTypes: DeviceType[] = [
-          "desktop",
-          "mobile",
-          "tablet",
-          "unknown",
-        ];
-        const deviceMap = new Map<string, number>();
-
-        for (const r of rows) {
-          deviceMap.set(r.device_type, r.count);
+        if (!Array.isArray(rows)) {
+          throw new Error("Invalid response format: expected an array");
         }
 
-        const mapped: DataItem[] = deviceTypes.map((type) => ({
-          name: capitalize(type),
-          value: deviceMap.get(type) || 0,
+        const map = new Map<DeviceType, number>();
+        for (const row of rows) {
+          const key = row.device_type.toLowerCase() as DeviceType;
+          if (DEVICE_TYPES.includes(key)) {
+            map.set(key, row.count);
+          }
+        }
+
+        const chartData: DataItem[] = DEVICE_TYPES.map((type) => ({
+          name: type,
+          value: map.get(type) || 0,
           trend: "same",
         }));
 
-        setData(mapped);
-        setLoading(false);
+        setData(chartData);
       } catch (e: any) {
-        if (!cancelled) {
-          setError(e.message);
-          setLoading(false);
-        }
+        if (!cancelled) setError(e.message);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     }
 
@@ -85,7 +84,7 @@ const DevicePieChart: React.FC = () => {
 
   if (loading) return <p>Loading…</p>;
   if (error) return <p style={{ color: "red" }}>Error: {error}</p>;
-  if (data.length === 0) return <p>No visits yet.</p>;
+  if (data.every((d) => d.value === 0)) return <p>No device visit data yet.</p>;
 
   return (
     <ResponsiveContainer width="100%" height={300}>
@@ -98,17 +97,17 @@ const DevicePieChart: React.FC = () => {
           cy="50%"
           outerRadius={100}
           innerRadius={60}
-          label
+          label={({ name, value }) => {
+            if (value === 0) return null;
+            return capitalize(name);
+          }}
         >
           {data.map((entry, index) => (
-            <Cell
-              key={`cell-${index}`}
-              fill={COLORS[entry.name.toLowerCase() as DeviceType]}
-            />
+            <Cell key={`cell-${index}`} fill={COLORS[entry.name]} />
           ))}
         </Pie>
         <Tooltip />
-        <Legend />
+        <Legend formatter={(value) => capitalize(value as string)} />
       </PieChart>
     </ResponsiveContainer>
   );
@@ -116,7 +115,6 @@ const DevicePieChart: React.FC = () => {
 
 export default DevicePieChart;
 
-// Helper
-function capitalize(s: string) {
+function capitalize(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }

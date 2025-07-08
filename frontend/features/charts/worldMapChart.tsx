@@ -1,3 +1,4 @@
+"use client";
 import React, { useEffect, useState } from "react";
 import { Chart } from "react-google-charts";
 
@@ -10,45 +11,40 @@ export function WorldMap() {
   const [data, setData] = useState<(string | number)[][]>([
     ["Country", "Clicks"],
   ]);
-  const [maxClicks, setMaxClicks] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [maxClicks, setMaxClicks] = useState(0);
 
   useEffect(() => {
-    let cancelled = false;
-
     async function load() {
       try {
-        const res = await fetch(
-          "http://localhost:8080/api/protected/analytics/worldmap?days=30",
-          { credentials: "include" }
-        );
+        const res = await fetch("/api/protected/analytics/worldmap?days=30", {
+          credentials: "include",
+        });
         if (!res.ok) throw new Error(`Status ${res.status}`);
         const json: CountryStat[] = await res.json();
-        console.log("worldmap JSON:", json);
 
-        if (cancelled) return;
+        if (!Array.isArray(json) || json.length === 0) {
+          setData([["Country", "Clicks"]]);
+          return;
+        }
 
-        const table: (string | number)[][] = [
+        const table = [
           ["Country", "Clicks"],
           ...json.map((entry) => [entry.country, entry.clicks]),
         ];
-
         const max = Math.max(...json.map((r) => r.clicks), 0);
 
         setData(table);
         setMaxClicks(max);
       } catch (e: any) {
-        if (!cancelled) setError(e.message);
+        setError(e.message || "Failed to load data.");
       } finally {
-        if (!cancelled) setLoading(false);
+        setLoading(false);
       }
     }
 
     load();
-    return () => {
-      cancelled = true;
-    };
   }, []);
 
   const options = {
@@ -64,7 +60,7 @@ export function WorldMap() {
 
   if (loading) return <p>Loading world map…</p>;
   if (error) return <p style={{ color: "red" }}>Error: {error}</p>;
-  if (data.length <= 1) return <p>No click data available.</p>;
+  if (data.length <= 1) return <p>No country click data available.</p>;
 
   return (
     <Chart
@@ -81,8 +77,8 @@ export function WorldMap() {
             const selection = chart?.getSelection?.();
             if (!selection?.length) return;
 
-            const [row] = selection;
-            const [country, clicks] = data[row.row + 1];
+            const rowIndex = selection[0].row + 1;
+            const [country, clicks] = data[rowIndex];
             console.log(`Selected: ${country}, Clicks: ${clicks}`);
           },
         },
