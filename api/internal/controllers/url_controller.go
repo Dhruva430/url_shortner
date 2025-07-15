@@ -576,3 +576,5 @@ func (a *URLController) GetDashboardData(ctx *gin.Context) {
 	}
 	ctx.JSON(http.StatusOK, summary)
 }
+
+

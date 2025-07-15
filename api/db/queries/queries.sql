@@ -147,6 +147,7 @@ WHERE u.user_id = $1
 GROUP BY uv.device_type;
 
 
+
 -- name: GetDailyClicksAndLinksByUser :many
 SELECT
   d::date AS date,
@@ -206,3 +207,48 @@ SELECT
   ) AS expired_links
 FROM urls
 WHERE user_id = $1;
+
+
+
+-- name: GetDailyClicksScoped :many
+SELECT
+  DATE(uv.clicked_at) AS date,
+  COUNT(*) AS clicks
+FROM url_visits uv
+JOIN urls u ON u.id = uv.url_id
+WHERE u.short_code = $1 AND u.user_id = $2
+GROUP BY date
+ORDER BY date DESC
+LIMIT 7;
+
+-- name: GetMonthlyClicksScoped :many
+SELECT
+  DATE_TRUNC('month', uv.clicked_at)::date AS month,
+  COUNT(*) AS click_count
+FROM url_visits uv
+JOIN urls u ON u.id = uv.url_id
+WHERE u.short_code = $1 AND u.user_id = $2
+  AND uv.clicked_at >= NOW() - INTERVAL '1 year'
+GROUP BY month
+ORDER BY month;
+
+-- name: GetDeviceStatsScoped :many
+SELECT
+  COALESCE(uv.device_type, 'unknown') AS device_type,
+  COUNT(*) AS count
+FROM url_visits uv
+JOIN urls u ON u.id = uv.url_id
+WHERE u.short_code = $1 AND u.user_id = $2
+GROUP BY uv.device_type;
+
+-- name: GetCountryStatsScoped :many
+SELECT
+  COALESCE(uv.country, 'unknown') AS country,
+  COUNT(*) AS clicks
+FROM url_visits uv
+JOIN urls u ON u.id = uv.url_id
+WHERE u.short_code = $1 AND u.user_id = $2
+  AND uv.clicked_at >= NOW() - ($3::int * INTERVAL '1 day')
+GROUP BY country
+ORDER BY clicks DESC
+LIMIT 10;

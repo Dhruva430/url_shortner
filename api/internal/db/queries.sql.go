@@ -219,6 +219,53 @@ func (q *Queries) GetAnalyticsShortcode(ctx context.Context, shortCode string) (
 	return items, nil
 }
 
+const getCountryStatsScoped = `-- name: GetCountryStatsScoped :many
+SELECT
+  COALESCE(uv.country, 'unknown') AS country,
+  COUNT(*) AS clicks
+FROM url_visits uv
+JOIN urls u ON u.id = uv.url_id
+WHERE u.short_code = $1 AND u.user_id = $2
+  AND uv.clicked_at >= NOW() - ($3::int * INTERVAL '1 day')
+GROUP BY country
+ORDER BY clicks DESC
+LIMIT 10
+`
+
+type GetCountryStatsScopedParams struct {
+	ShortCode string        `json:"short_code"`
+	UserID    sql.NullInt32 `json:"user_id"`
+	Column3   int32         `json:"column_3"`
+}
+
+type GetCountryStatsScopedRow struct {
+	Country string `json:"country"`
+	Clicks  int64  `json:"clicks"`
+}
+
+func (q *Queries) GetCountryStatsScoped(ctx context.Context, arg GetCountryStatsScopedParams) ([]GetCountryStatsScopedRow, error) {
+	rows, err := q.db.QueryContext(ctx, getCountryStatsScoped, arg.ShortCode, arg.UserID, arg.Column3)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetCountryStatsScopedRow
+	for rows.Next() {
+		var i GetCountryStatsScopedRow
+		if err := rows.Scan(&i.Country, &i.Clicks); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getCountryVisitCountsByUser = `-- name: GetCountryVisitCountsByUser :many
 SELECT
   COALESCE(uv.country, '') AS country,
@@ -320,6 +367,51 @@ func (q *Queries) GetDailyClicksAndLinksByUser(ctx context.Context, userID sql.N
 	return items, nil
 }
 
+const getDailyClicksScoped = `-- name: GetDailyClicksScoped :many
+SELECT
+  DATE(uv.clicked_at) AS date,
+  COUNT(*) AS clicks
+FROM url_visits uv
+JOIN urls u ON u.id = uv.url_id
+WHERE u.short_code = $1 AND u.user_id = $2
+GROUP BY date
+ORDER BY date DESC
+LIMIT 7
+`
+
+type GetDailyClicksScopedParams struct {
+	ShortCode string        `json:"short_code"`
+	UserID    sql.NullInt32 `json:"user_id"`
+}
+
+type GetDailyClicksScopedRow struct {
+	Date   time.Time `json:"date"`
+	Clicks int64     `json:"clicks"`
+}
+
+func (q *Queries) GetDailyClicksScoped(ctx context.Context, arg GetDailyClicksScopedParams) ([]GetDailyClicksScopedRow, error) {
+	rows, err := q.db.QueryContext(ctx, getDailyClicksScoped, arg.ShortCode, arg.UserID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetDailyClicksScopedRow
+	for rows.Next() {
+		var i GetDailyClicksScopedRow
+		if err := rows.Scan(&i.Date, &i.Clicks); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getDashboardSummaryByUser = `-- name: GetDashboardSummaryByUser :one
 SELECT
   COUNT(*) AS total_links,
@@ -351,6 +443,49 @@ func (q *Queries) GetDashboardSummaryByUser(ctx context.Context, userID sql.Null
 		&i.ExpiredLinks,
 	)
 	return i, err
+}
+
+const getDeviceStatsScoped = `-- name: GetDeviceStatsScoped :many
+SELECT
+  COALESCE(uv.device_type, 'unknown') AS device_type,
+  COUNT(*) AS count
+FROM url_visits uv
+JOIN urls u ON u.id = uv.url_id
+WHERE u.short_code = $1 AND u.user_id = $2
+GROUP BY uv.device_type
+`
+
+type GetDeviceStatsScopedParams struct {
+	ShortCode string        `json:"short_code"`
+	UserID    sql.NullInt32 `json:"user_id"`
+}
+
+type GetDeviceStatsScopedRow struct {
+	DeviceType string `json:"device_type"`
+	Count      int64  `json:"count"`
+}
+
+func (q *Queries) GetDeviceStatsScoped(ctx context.Context, arg GetDeviceStatsScopedParams) ([]GetDeviceStatsScopedRow, error) {
+	rows, err := q.db.QueryContext(ctx, getDeviceStatsScoped, arg.ShortCode, arg.UserID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetDeviceStatsScopedRow
+	for rows.Next() {
+		var i GetDeviceStatsScopedRow
+		if err := rows.Scan(&i.DeviceType, &i.Count); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getDeviceTypeStatsByShortCode = `-- name: GetDeviceTypeStatsByShortCode :many
@@ -453,6 +588,51 @@ func (q *Queries) GetMonthlyClicksByUser(ctx context.Context, userID sql.NullInt
 	var items []GetMonthlyClicksByUserRow
 	for rows.Next() {
 		var i GetMonthlyClicksByUserRow
+		if err := rows.Scan(&i.Month, &i.ClickCount); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getMonthlyClicksScoped = `-- name: GetMonthlyClicksScoped :many
+SELECT
+  DATE_TRUNC('month', uv.clicked_at)::date AS month,
+  COUNT(*) AS click_count
+FROM url_visits uv
+JOIN urls u ON u.id = uv.url_id
+WHERE u.short_code = $1 AND u.user_id = $2
+  AND uv.clicked_at >= NOW() - INTERVAL '1 year'
+GROUP BY month
+ORDER BY month
+`
+
+type GetMonthlyClicksScopedParams struct {
+	ShortCode string        `json:"short_code"`
+	UserID    sql.NullInt32 `json:"user_id"`
+}
+
+type GetMonthlyClicksScopedRow struct {
+	Month      time.Time `json:"month"`
+	ClickCount int64     `json:"click_count"`
+}
+
+func (q *Queries) GetMonthlyClicksScoped(ctx context.Context, arg GetMonthlyClicksScopedParams) ([]GetMonthlyClicksScopedRow, error) {
+	rows, err := q.db.QueryContext(ctx, getMonthlyClicksScoped, arg.ShortCode, arg.UserID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetMonthlyClicksScopedRow
+	for rows.Next() {
+		var i GetMonthlyClicksScopedRow
 		if err := rows.Scan(&i.Month, &i.ClickCount); err != nil {
 			return nil, err
 		}

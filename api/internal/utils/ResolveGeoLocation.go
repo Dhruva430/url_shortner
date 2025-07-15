@@ -36,7 +36,7 @@ func DetectDeviceTypeUA(userAgent string) string {
 		return "tablet"
 	}
 
-	if strings.Contains(ua, "mobile") {
+	if strings.Contains(ua, "mobile")|| strings.Contains(ua, "iphone") || strings.Contains(ua, "android") {
 		return "mobile"
 	}
 
