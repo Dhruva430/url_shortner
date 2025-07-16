@@ -173,6 +173,13 @@ LEFT JOIN (
 ) AS links ON links.date = d
 ORDER BY d;
 
+-- name: GetTitleAndUrlByUser :many
+SELECT 
+  id,
+  title,
+  short_code
+FROM urls
+WHERE user_id = $1;
 
 -- name: GetMonthlyClicksByUser :many
 SELECT DATE_TRUNC('month', url_visits.clicked_at)::date AS month,
@@ -252,3 +259,13 @@ WHERE u.short_code = $1 AND u.user_id = $2
 GROUP BY country
 ORDER BY clicks DESC
 LIMIT 10;
+
+
+-- name: GetDeviceStatsByShortcode :many
+SELECT
+  COALESCE(uv.device_type, 'unknown') AS device_type,
+  COUNT(*) AS count
+FROM url_visits uv
+INNER JOIN urls u ON uv.url_id = u.id
+WHERE u.short_code = $1
+GROUP BY device_type;

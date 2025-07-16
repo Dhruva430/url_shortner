@@ -115,7 +115,10 @@ export default function Dashboard() {
               Breakdown of devices used to visit your links.
             </p>
           </div>
-          <DevicePieChart />
+          <DevicePieChart
+            fetchURL="/api/protected/analytics/devices"
+            title="Device Types"
+          />
         </div>
 
         {/* Line */}

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Exo } from "next/font/google";
 import "./globals.css";
 import QueryProvider from "./providers/queryProvider";
+import { AuthProvider } from "@/features/auth/hooks/auth/authProvider";
 
 const exo = Exo({
   variable: "--font-exo",
@@ -22,7 +23,9 @@ export default function RootLayout({
   return (
     <html lang="en" className={exo.variable}>
       <body className="bg-background text-foreground antialiased">
-        <QueryProvider>{children}</QueryProvider>
+        <QueryProvider>
+          <AuthProvider>{children}</AuthProvider>
+        </QueryProvider>
       </body>
     </html>
   );

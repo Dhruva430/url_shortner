@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React from "react";
 import {
   PieChart,
   Pie,
@@ -8,18 +8,20 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-
-type ApiRow = {
-  device_type: string;
-  count: number;
-};
+import { useQuery } from "@tanstack/react-query";
 
 type DeviceType = "desktop" | "mobile" | "tablet" | "unknown";
 
 type DataItem = {
-  name: DeviceType; // enforce type
+  name: DeviceType;
   value: number;
   trend: "up" | "down" | "same";
+};
+
+type Props = {
+  shortcode: string;
+  title?: string;
+  height?: number;
 };
 
 const COLORS: Record<DeviceType, string> = {
@@ -31,64 +33,61 @@ const COLORS: Record<DeviceType, string> = {
 
 const DEVICE_TYPES: DeviceType[] = ["desktop", "mobile", "tablet", "unknown"];
 
-const DevicePieChart: React.FC = () => {
-  const [data, setData] = useState<DataItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function load() {
-      try {
-        const res = await fetch("/api/protected/analytics/devices", {
+export default function DevicePieChart({
+  shortcode,
+  title,
+  height = 300,
+}: Props) {
+  const {
+    data = [],
+    isLoading,
+    isError,
+  } = useQuery<DataItem[]>({
+    queryKey: ["deviceStats", shortcode],
+    queryFn: async () => {
+      const res = await fetch(
+        `/api/protected/analytics/piechart/${shortcode}`,
+        {
           credentials: "include",
-        });
-
-        if (!res.ok) throw new Error(`Status ${res.status}`);
-
-        const rows: ApiRow[] | null = await res.json();
-        if (cancelled) return;
-
-        if (!Array.isArray(rows)) {
-          throw new Error("Invalid response format: expected an array");
         }
+      );
+      if (!res.ok) throw new Error(`Status ${res.status}`);
 
-        const map = new Map<DeviceType, number>();
-        for (const row of rows) {
-          const key = row.device_type.toLowerCase() as DeviceType;
-          if (DEVICE_TYPES.includes(key)) {
-            map.set(key, row.count);
-          }
-        }
+      const rows: { device_type: string; count: number }[] = await res.json();
 
-        const chartData: DataItem[] = DEVICE_TYPES.map((type) => ({
-          name: type,
-          value: map.get(type) || 0,
-          trend: "same",
-        }));
-
-        setData(chartData);
-      } catch (e: any) {
-        if (!cancelled) setError(e.message);
-      } finally {
-        if (!cancelled) setLoading(false);
+      const map = new Map<DeviceType, number>();
+      for (const row of rows) {
+        const rawType = row.device_type?.toLowerCase() || "unknown";
+        const type = DEVICE_TYPES.includes(rawType as DeviceType)
+          ? (rawType as DeviceType)
+          : "unknown";
+        map.set(type, row.count);
       }
-    }
+      console.log("Device stats map:", map);
 
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+      return DEVICE_TYPES.map((type) => ({
+        name: type,
+        value: map.get(type) || 0,
+        trend: "same",
+      }));
+    },
+    enabled: !!shortcode,
+  });
 
-  if (loading) return <p>Loading…</p>;
-  if (error) return <p style={{ color: "red" }}>Error: {error}</p>;
+  if (isLoading) return <p>Loading…</p>;
+  console.log("Device stats data:", data);
+  if (isError)
+    return <p style={{ color: "red" }}>Error loading device stats</p>;
   if (data.every((d) => d.value === 0)) return <p>No device visit data yet.</p>;
 
   return (
-    <ResponsiveContainer width="100%" height={300}>
+    <ResponsiveContainer width="100%" height={height}>
       <PieChart>
+        {title && (
+          <text x={150} y={20} textAnchor="middle" fontWeight="bold">
+            {title}
+          </text>
+        )}
         <Pie
           data={data}
           dataKey="value"
@@ -111,9 +110,7 @@ const DevicePieChart: React.FC = () => {
       </PieChart>
     </ResponsiveContainer>
   );
-};
-
-export default DevicePieChart;
+}
 
 function capitalize(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);

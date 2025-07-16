@@ -7,20 +7,20 @@ import {
 } from "@/components/ui/sidebar";
 import AppSidebar from "@/components/app-sidebar";
 import Header from "@/components/header";
-import { useAuth } from "@/features/auth/hooks/useAuth";
+import { useAuth } from "@/features/auth/hooks/auth/authProvider";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
-  const { loading, isAuthenticated } = useAuth();
+  const { isLoading, isAuthenticated } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading && !isAuthenticated) {
+    if (!isAuthenticated && !isLoading) {
       router.push("/login");
     }
-  }, [loading, isAuthenticated]);
-  if (loading || !isAuthenticated)
+  }, [isAuthenticated, isLoading]);
+  if (isLoading || !isAuthenticated)
     return (
       <div className="h-screen flex items-center justify-center bg-slate-900">
         <div className="flex flex-col items-center gap-4">

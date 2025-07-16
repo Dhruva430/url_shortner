@@ -22,3 +22,9 @@ type VisitAnalyticsItem struct {
 	City      string `json:"city"`
 	Timestamp string `json:"timestamp"`
 }
+
+type PieChart struct {
+	ID        int64  `json:"id"`
+	Title     string `json:"title"`
+	Shortcode string `json:"shortcode"`
+}

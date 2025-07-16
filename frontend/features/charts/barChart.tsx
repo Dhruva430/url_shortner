@@ -50,7 +50,6 @@ const BarChart: React.FC = () => {
         let data: Record<string, number> = {};
 
         const currentMonthNum = moment().month();
-        console.log("Current month number:", currentMonthNum);
         let monthsToShow = [
           ...MONTH_ORDER.slice(currentMonthNum + 1),
           ...MONTH_ORDER.slice(0, currentMonthNum + 1),
@@ -73,8 +72,6 @@ const BarChart: React.FC = () => {
           ["Month", "Clicks"],
           ...monthRows.map((r) => [r.month, r.clicks]),
         ];
-        console.log("Chart data:", chartData);
-        console.log(rows);
 
         setData(chartData);
         setMaxClicks(max);
@@ -87,7 +84,6 @@ const BarChart: React.FC = () => {
 
     fetchData();
   }, []);
-  console.log("Bar chart data:", data);
   const chartOptions = {
     colors: ["#2a9d90"],
     chartArea: { width: "70%", height: "70%" },

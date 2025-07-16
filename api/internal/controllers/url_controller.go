@@ -321,75 +321,6 @@ func (c *URLController) GetQRCode(ctx *gin.Context) {
 	ctx.Writer.Write(qrCode)
 }
 
-func (c *URLController) SaveQRCodeWithLogo(ctx *gin.Context) {
-	var req models.QRCodeWithLogoRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(400, gin.H{"error": "Invalid request body"})
-		return
-	}
-
-	if req.ExpireAt < 0 {
-		req.ExpireAt = 0
-	}
-	var expiry *time.Time
-	if req.ExpireAt > 0 {
-		now := time.Now()
-		exp := now.Add(time.Duration(req.ExpireAt) * 24 * time.Hour)
-		expiry = &exp
-		if time.Now().After(*expiry) {
-			ctx.JSON(410, gin.H{"error": "This QR code has expired"})
-			return
-		}
-	}
-
-	if req.Format == "" {
-		req.Format = "png"
-	}
-	if req.Format != "png" && req.Format != "jpeg" {
-		ctx.JSON(400, gin.H{"error": "Unsupported format. Use png or jpeg"})
-		return
-	}
-
-	// Foreground and background colors
-	if req.FgColor == "" {
-		req.FgColor = "#000000"
-	}
-	if req.BgColor == "" {
-		req.BgColor = "#ffffff"
-	}
-
-	fgColor, err := utils.ParseHexColor(req.FgColor)
-	if err != nil {
-		ctx.JSON(400, gin.H{"error": "Invalid fg_color format"})
-		return
-	}
-
-	bgColor, err := utils.ParseHexColor(req.BgColor)
-	if err != nil {
-		ctx.JSON(400, gin.H{"error": "Invalid bg_color format"})
-		return
-	}
-
-	if fgColor == bgColor {
-		ctx.JSON(400, gin.H{"error": "fg_color and bg_color cannot be the same"})
-		return
-	}
-
-	qrBytes, err := utils.GenerateQRCodeWithLogos("short_url", req.LogoURL, 512, req.Format, fgColor, bgColor)
-	if err != nil {
-		ctx.JSON(500, gin.H{"error": "Failed to generate QR code with logo"})
-		return
-	}
-
-	switch req.Format {
-	case "jpeg":
-		ctx.Header("Content-Type", "image/jpeg")
-	default:
-		ctx.Header("Content-Type", "image/png")
-	}
-	ctx.Writer.Write(qrBytes)
-}
-
 func (c *URLController) FetchQRCodeWithLogo(ctx *gin.Context) {
 	rawURL := ctx.Query("url")
 	fg_color := ctx.DefaultQuery("fg_color", "#000000")
@@ -577,4 +508,71 @@ func (a *URLController) GetDashboardData(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, summary)
 }
 
+func (c *URLController) GetClicksByShortcode(ctx *gin.Context) {
+	userID := ctx.GetInt64("user_id")
+	shortcode := ctx.Param("shortcode")
 
+	if shortcode == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "shortcode is required"})
+		return
+	}
+
+	url, err := c.store.GetURLByShortCode(ctx, shortcode)
+	if err != nil || !url.UserID.Valid || int64(url.UserID.Int32) != userID {
+		ctx.JSON(http.StatusForbidden, gin.H{"error": "URL not found or access denied"})
+		return
+	}
+	clicks, err := c.store.GetDailyClicksScoped(ctx, db.GetDailyClicksScopedParams{
+		ShortCode: shortcode,
+		UserID: sql.NullInt32{
+			Int32: int32(userID),
+		},
+	})
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch clicks"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, clicks)
+}
+
+func (c *URLController) GetPieChartDataByShorcode(ctx *gin.Context) {
+	shortcode := ctx.Param("shortcode")
+
+	stats, err := c.store.GetDeviceStatsByShortcode(ctx, shortcode)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch device stats"})
+		return
+	}
+	if stats == nil {
+		stats = []db.GetDeviceStatsByShortcodeRow{}
+	}
+
+	
+	ctx.JSON(http.StatusOK, stats)
+}
+
+func (c *URLController) GetTitleAndUrlByUser(ctx *gin.Context) {
+	userID, exists := ctx.Get("user_id")
+	if !exists {
+		ctx.JSON(401, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	titles, err := c.store.GetTitleAndUrlByUser(ctx, sql.NullInt32{Int32: int32(userID.(int64)), Valid: true})
+	if err != nil {
+		ctx.JSON(500, gin.H{"error": "Failed to fetch titles and URLs"})
+		return
+	}
+
+	var result []models.PieChart
+	for _, title := range titles {
+		result = append(result, models.PieChart{
+			ID:        int64(title.ID),
+			Title:     title.Title.String,
+			Shortcode: title.ShortCode,
+		})
+	}
+
+	ctx.JSON(200, result)
+}

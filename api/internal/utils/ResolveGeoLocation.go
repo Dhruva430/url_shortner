@@ -32,12 +32,11 @@ func ResolveGeoLocation(ip string) (country string, region string, city string) 
 func DetectDeviceTypeUA(userAgent string) string {
 	ua := strings.ToLower(userAgent)
 
+	if strings.Contains(ua, "mobile") || strings.Contains(ua, "iphone") || strings.Contains(ua, "android") || strings.Contains(ua, "blackberry") {
+		return "mobile"
+	}
 	if strings.Contains(ua, "ipad") || strings.Contains(ua, "tablet") || strings.Contains(ua, "applewebkit") {
 		return "tablet"
-	}
-
-	if strings.Contains(ua, "mobile")|| strings.Contains(ua, "iphone") || strings.Contains(ua, "android") {
-		return "mobile"
 	}
 
 	if strings.Contains(ua, "macintosh") || strings.Contains(ua, "windows") || strings.Contains(ua, "linux") {

@@ -26,6 +26,7 @@ type LinkResponse struct {
 	Title       string `json:"title"`
 	OriginalURL string `json:"original_url"`
 	ShortURL    string `json:"short_url"`
+	Shortcode   string `json:"shortcode"`
 	Clicks      int    `json:"clicks"`
 	CreatedAt   string `json:"created_at"`
 	Thumbnail   string `json:"thumbnail,omitempty"`

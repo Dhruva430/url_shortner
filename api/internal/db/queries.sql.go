@@ -445,6 +445,44 @@ func (q *Queries) GetDashboardSummaryByUser(ctx context.Context, userID sql.Null
 	return i, err
 }
 
+const getDeviceStatsByShortcode = `-- name: GetDeviceStatsByShortcode :many
+SELECT
+  COALESCE(uv.device_type, 'unknown') AS device_type,
+  COUNT(*) AS count
+FROM url_visits uv
+INNER JOIN urls u ON uv.url_id = u.id
+WHERE u.short_code = $1
+GROUP BY device_type
+`
+
+type GetDeviceStatsByShortcodeRow struct {
+	DeviceType string `json:"device_type"`
+	Count      int64  `json:"count"`
+}
+
+func (q *Queries) GetDeviceStatsByShortcode(ctx context.Context, shortCode string) ([]GetDeviceStatsByShortcodeRow, error) {
+	rows, err := q.db.QueryContext(ctx, getDeviceStatsByShortcode, shortCode)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetDeviceStatsByShortcodeRow
+	for rows.Next() {
+		var i GetDeviceStatsByShortcodeRow
+		if err := rows.Scan(&i.DeviceType, &i.Count); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getDeviceStatsScoped = `-- name: GetDeviceStatsScoped :many
 SELECT
   COALESCE(uv.device_type, 'unknown') AS device_type,
@@ -669,6 +707,44 @@ func (q *Queries) GetOriginalURL(ctx context.Context, shortCode string) (Url, er
 		&i.UserID,
 	)
 	return i, err
+}
+
+const getTitleAndUrlByUser = `-- name: GetTitleAndUrlByUser :many
+SELECT 
+  id,
+  title,
+  short_code
+FROM urls
+WHERE user_id = $1
+`
+
+type GetTitleAndUrlByUserRow struct {
+	ID        int32          `json:"id"`
+	Title     sql.NullString `json:"title"`
+	ShortCode string         `json:"short_code"`
+}
+
+func (q *Queries) GetTitleAndUrlByUser(ctx context.Context, userID sql.NullInt32) ([]GetTitleAndUrlByUserRow, error) {
+	rows, err := q.db.QueryContext(ctx, getTitleAndUrlByUser, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetTitleAndUrlByUserRow
+	for rows.Next() {
+		var i GetTitleAndUrlByUserRow
+		if err := rows.Scan(&i.ID, &i.Title, &i.ShortCode); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getURLByShortCode = `-- name: GetURLByShortCode :one

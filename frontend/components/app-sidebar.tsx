@@ -64,7 +64,7 @@ export default function AppSidebar() {
       label: "Links",
     },
     {
-      href: "/analytics",
+      href: "/dashboard/analytics",
       icon: <BarChart2 className="size-5" />,
       label: "Analytics",
     },
