@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   LineChart,
   Line,
@@ -10,14 +10,25 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
+import { useQuery } from "@tanstack/react-query";
+import { useAnalyticsContext } from "@/contexts/analyticsContext";
 
-interface RawDataPoint {
+type LineKey = string;
+
+interface RawRow {
   date: string;
-  clicks: number;
-  links: number;
+  [key: string]: any;
 }
-interface DataPoint extends RawDataPoint {
+interface FormattedRow extends RawRow {
   formattedDate: string;
+}
+
+interface Props {
+  shortcode?: string; // Optional, fallback to context
+  lines: LineKey[];
+  lineColors?: Record<LineKey, string>;
+  height?: number;
+  parser?: (rows: RawRow[]) => FormattedRow[];
 }
 
 const formatDate = (d: string) =>
@@ -27,12 +38,12 @@ const formatDate = (d: string) =>
     month: "short",
   })}`;
 
-/* ------------ 1. Custom tooltip ------------ */
-const CustomTooltip: React.FC<
-  {
-    hoveredKey: string | null;
-  } & { active?: boolean; payload?: any[]; label?: string }
-> = ({ active, payload, label, hoveredKey }) => {
+const CustomTooltip: React.FC<{
+  hoveredKey: string | null;
+  active?: boolean;
+  payload?: any[];
+  label?: string;
+}> = ({ active, payload, label, hoveredKey }) => {
   if (!active || !payload?.length) return null;
 
   const items = hoveredKey
@@ -51,85 +62,88 @@ const CustomTooltip: React.FC<
   );
 };
 
-/* ------------ 2. Main chart component ------------ */
-const MyLineChart: React.FC = () => {
-  const [data, setData] = useState<DataPoint[]>([]);
-  const [loading, setLoading] = useState(true);
+export default function ReusableLineChart({
+  shortcode: propShortcode,
+  lines,
+  lineColors = {},
+  height = 300,
+  parser,
+}: Props) {
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
+  const contextShortcode = useAnalyticsContext()?.selectedShortcode ?? null;
+  const shortcode = propShortcode || contextShortcode;
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch("/api/protected/analytics/line?days=7", {
+  const {
+    data = [],
+    isLoading,
+    isError,
+  } = useQuery<FormattedRow[]>({
+    queryKey: ["lineChart", shortcode],
+    queryFn: async () => {
+      const res = await fetch(
+        `/api/protected/analytics/linechart/${shortcode}`,
+        {
           credentials: "include",
-        });
-        if (!res.ok) throw new Error(`Status ${res.status}`);
-        const raw: RawDataPoint[] = await res.json();
-        if (!cancelled) {
-          setData(
-            raw.map((d) => ({ ...d, formattedDate: formatDate(d.date) }))
-          );
         }
-      } catch (e) {
-        console.error("Failed to fetch chart data", e);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+      );
+      if (!res.ok) throw new Error(`Status ${res.status}`);
+
+      const raw: RawRow[] = await res.json();
+
+      return parser
+        ? parser(raw)
+        : raw.map((d) => ({
+            ...d,
+            formattedDate: formatDate(d.date),
+          }));
+    },
+    enabled: !!shortcode,
+  });
+
+  if (isLoading) return <p className="text-gray-500">Loading chart…</p>;
+  if (isError) return <p className="text-red-500">Failed to load chart.</p>;
+  if (!data.length) return <p className="text-gray-500">No data available.</p>;
 
   return (
-    <div className="w-full">
-      {loading ? (
-        <p className="text-gray-500">Loading chart…</p>
-      ) : data.length === 0 ? (
-        <p className="text-gray-500">No data found.</p>
-      ) : (
-        <ResponsiveContainer width="100%" height={300}>
-          <LineChart
-            data={data}
-            margin={{ top: 20, right: 30, left: 10, bottom: 5 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="formattedDate" />
-            <YAxis domain={[0, "auto"]} allowDecimals={false} />
-            <Tooltip
-              content={(props) => (
-                <CustomTooltip {...props} hoveredKey={hoveredKey} />
-              )}
-            />
-            <Legend />
+    <ResponsiveContainer width="100%" height={height}>
+      <LineChart
+        data={data}
+        margin={{ top: 20, right: 30, left: 10, bottom: 5 }}
+      >
+        <CartesianGrid strokeDasharray="3 3" />
+        <XAxis dataKey="formattedDate" />
+        <YAxis domain={[0, "auto"]} allowDecimals={false} />
+        <Tooltip
+          content={(props) => (
+            <CustomTooltip {...props} hoveredKey={hoveredKey} />
+          )}
+        />
+        <Legend />
+        {lines.map((key) => {
+          const color = lineColors[key] ?? "#000";
+          return (
             <Line
+              key={key}
               type="monotone"
-              dataKey="clicks"
-              name="Total Clicks"
-              stroke="#00b3b3"
+              dataKey={key}
+              name={capitalizeWords(key)}
+              stroke={color}
               strokeWidth={2}
-              dot={{ r: 4, fill: "#fff", stroke: "#00b3b3", strokeWidth: 2 }}
+              dot={{ r: 4, fill: "#fff", stroke: color, strokeWidth: 2 }}
               activeDot={{ r: 6 }}
-              onMouseEnter={() => setHoveredKey("clicks")}
+              onMouseEnter={() => setHoveredKey(key)}
               onMouseLeave={() => setHoveredKey(null)}
             />
-            <Line
-              type="monotone"
-              dataKey="links"
-              name="New Links Created"
-              stroke="#f25c54"
-              strokeWidth={2}
-              dot={{ r: 4, fill: "#fff", stroke: "#f25c54", strokeWidth: 2 }}
-              activeDot={{ r: 6 }}
-              onMouseEnter={() => setHoveredKey("links")}
-              onMouseLeave={() => setHoveredKey(null)}
-            />
-          </LineChart>
-        </ResponsiveContainer>
-      )}
-    </div>
+          );
+        })}
+      </LineChart>
+    </ResponsiveContainer>
   );
-};
+}
 
-export default MyLineChart;
+function capitalizeWords(str: string): string {
+  return str
+    .split(/_|-/)
+    .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+    .join(" ");
+}

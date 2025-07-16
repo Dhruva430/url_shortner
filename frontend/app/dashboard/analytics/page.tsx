@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import DevicePieChart from "@/features/charts/pieChart";
-import LineChart from "@/features/charts/lineChart";
+import ReusableLineChart from "@/features/charts/lineChart";
 import { WorldMap } from "@/features/charts/worldMapChart";
 import BarChart from "@/features/charts/barChart";
 import FilterDropdown from "./filter";
@@ -18,7 +18,6 @@ type Options = {
 };
 
 export default function AnalyticsPage() {
-  // console.log("Context created", selectedShortcode);
   return (
     <AnalyticsProvider>
       <AnalyticsContent />
@@ -28,7 +27,6 @@ export default function AnalyticsPage() {
 
 function AnalyticsContent() {
   const { selectedShortcode, setSelectedShortcode } = useAnalyticsContext();
-  console.log("selectedShortcode (render):", selectedShortcode);
 
   const {
     data: options = [],
@@ -46,87 +44,89 @@ function AnalyticsContent() {
   });
 
   const handleSelect = (option: Options) => {
-    console.log("Selected from dropdown:", option);
     setSelectedShortcode(option.shortcode);
   };
 
   return (
     <>
-      <div className="">
+      <div className="mb-4">
         {isLoading ? (
           <p>Loading options...</p>
         ) : isError ? (
-          <p>Error loading options</p>
+          <p className="text-red-500">Error loading options</p>
         ) : (
           <FilterDropdown onSelect={handleSelect} options={options} />
         )}
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        {/* Pie */}
-        <div className="rounded-lg border bg-white shadow-sm">
-          <div className="p-6 pb-0 space-y-1.5">
-            <h2 className="text-lg font-semibold tracking-tight text-black">
-              Device Usage
-            </h2>
-            <p className="text-sm text-gray-500">
-              Breakdown of devices used to visit your links.
-            </p>
-          </div>
-          {selectedShortcode && (
+      {selectedShortcode ? (
+        <div className="grid gap-4 md:grid-cols-2">
+          {/* Pie Chart */}
+          <div className="rounded-lg border bg-white shadow-sm">
+            <div className="p-6 pb-0 space-y-1.5">
+              <h2 className="text-lg font-semibold tracking-tight text-black">
+                Device Usage
+              </h2>
+              <p className="text-sm text-gray-500">
+                Breakdown of devices used to visit your links.
+              </p>
+            </div>
             <DevicePieChart
               shortcode={selectedShortcode}
               title="Device Types"
             />
-          )}
-        </div>
+          </div>
 
-        {/* Line */}
-        <div className="rounded-lg border bg-white shadow-sm">
-          <div className="p-6 pb-0 space-y-1.5">
-            <h2 className="text-lg font-semibold tracking-tight text-black">
-              Link Performance
-            </h2>
-            <p className="text-sm text-gray-500">
-              Growth of clicks and links created.
-            </p>
+          {/* Line Chart */}
+          <div className="rounded-lg border bg-white shadow-sm">
+            <div className="p-6 pb-0 space-y-1.5">
+              <h2 className="text-lg font-semibold tracking-tight text-black">
+                Link Performance
+              </h2>
+              <p className="text-sm text-gray-500">
+                Growth of clicks and links created.
+              </p>
+            </div>
+            <ReusableLineChart
+              shortcode={selectedShortcode}
+              lines={["clicks", "links"]}
+              lineColors={{ clicks: "#00b3b3", links: "#f25c54" }}
+            />
           </div>
-          <LineChart
-            endpoint="/api/protected/analytics/line"
-            queryParams={{ days: "7" }}
-            lines={["clicks", "links"]}
-            lineColors={{ clicks: "#00b3b3", links: "#f25c54" }}
-          />
-        </div>
 
-        {/* World Map */}
-        <div className="rounded-lg border bg-white shadow-sm">
-          <div className="p-6 pb-0 space-y-1.5">
-            <h2 className="text-lg font-semibold tracking-tight text-black">
-              World Map
-            </h2>
-            <p className="text-sm text-gray-500">
-              Geographic distribution of link visits.
-            </p>
+          {/* World Map */}
+          <div className="rounded-lg border bg-white shadow-sm">
+            <div className="p-6 pb-0 space-y-1.5">
+              <h2 className="text-lg font-semibold tracking-tight text-black">
+                World Map
+              </h2>
+              <p className="text-sm text-gray-500">
+                Geographic distribution of link visits.
+              </p>
+            </div>
+            <WorldMap />
           </div>
-          <WorldMap />
-        </div>
 
-        {/* Bar Chart */}
-        <div className="rounded-lg border bg-white shadow-sm flex flex-col">
-          <div className="p-6 pb-0 space-y-1.5">
-            <h2 className="text-lg font-semibold tracking-tight text-black">
-              Monthly Clicks
-            </h2>
-            <p className="text-sm text-gray-500">
-              Total link clicks over the past year.
-            </p>
-          </div>
-          <div className="flex flex-grow items-center justify-center">
-            <BarChart />
+          {/* Bar Chart */}
+          <div className="rounded-lg border bg-white shadow-sm flex flex-col">
+            <div className="p-6 pb-0 space-y-1.5">
+              <h2 className="text-lg font-semibold tracking-tight text-black">
+                Monthly Clicks
+              </h2>
+              <p className="text-sm text-gray-500">
+                Total link clicks over the past year.
+              </p>
+            </div>
+            <div className="flex flex-grow items-center justify-center">
+              <BarChart />
+            </div>
           </div>
         </div>
-      </div>
+      ) : (
+        <p className="text-gray-600 text-sm mt-6">
+          Select a link to view its analytics.
+        </p>
+      )}
     </>
   );
 }

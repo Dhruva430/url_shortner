@@ -548,7 +548,6 @@ func (c *URLController) GetPieChartDataByShorcode(ctx *gin.Context) {
 		stats = []db.GetDeviceStatsByShortcodeRow{}
 	}
 
-	
 	ctx.JSON(http.StatusOK, stats)
 }
 
@@ -575,4 +574,29 @@ func (c *URLController) GetTitleAndUrlByUser(ctx *gin.Context) {
 	}
 
 	ctx.JSON(200, result)
+}
+
+func (c *URLController) LineChartStatsByShortcode(ctx *gin.Context) {
+	shortcode := ctx.Param("shortcode")
+	if shortcode == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "shortcode is required"})
+		return
+	}
+
+	stats, err := c.store.GetDailyClicksScoped(ctx, db.GetDailyClicksScopedParams{
+		ShortCode: shortcode,
+		UserID: sql.NullInt32{
+			Int32: int32(ctx.GetInt64("user_id")),
+			Valid: true,
+		},
+	})
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch line chart stats"})
+		return
+	}
+
+	if stats == nil {
+		stats = []db.GetDailyClicksScopedRow{}
+	}
+	ctx.JSON(http.StatusOK, stats)
 }
