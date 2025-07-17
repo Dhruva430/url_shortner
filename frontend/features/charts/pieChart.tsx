@@ -74,7 +74,12 @@ export default function DevicePieChart({
   console.log("Device stats data:", data);
   if (isError)
     return <p style={{ color: "red" }}>Error loading device stats</p>;
-  if (data.every((d) => d.value === 0)) return <p>No device visit data yet.</p>;
+  if (data.every((d) => d.value === 0))
+    return (
+      <div className="m-40 text-gray-500">
+        <p>No device visit data yet.</p>
+      </div>
+    );
 
   return (
     <ResponsiveContainer width="100%" height={height}>

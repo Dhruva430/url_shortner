@@ -65,7 +65,6 @@ function formatBarChartData(rows: ApiRow[]) {
 
 const BarChart: React.FC<BarChartProps> = ({
   fetchURL,
-  title = "Monthly Clicks",
   color = "#2a9d90",
   width = 600,
   height = 400,
@@ -114,7 +113,6 @@ const BarChart: React.FC<BarChartProps> = ({
 
   return (
     <div className="flex flex-col gap-2">
-      {title && <h2 className="text-lg font-semibold text-black">{title}</h2>}
       <Chart chartType="Bar" data={data.chartData} options={chartOptions} />
     </div>
   );

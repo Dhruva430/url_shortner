@@ -97,7 +97,12 @@ export default function ReusableLineChart({
 
   if (isLoading) return <p className="text-gray-500">Loading chart…</p>;
   if (isError) return <p className="text-red-500">Failed to load chart.</p>;
-  if (!data.length) return <p className="text-gray-500">No data available.</p>;
+  if (!data.length)
+    return (
+      <div className="m-40">
+        <p className="text-gray-500">No Device Click on Link Yet.</p>
+      </div>
+    );
 
   return (
     <ResponsiveContainer width="100%" height={height}>

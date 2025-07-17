@@ -2,7 +2,7 @@
 import React from "react";
 import { Chart } from "react-google-charts";
 import { useQuery } from "@tanstack/react-query";
-import { map } from "leaflet";
+import { divIcon, map } from "leaflet";
 
 interface CountryStat {
   country: string;
@@ -59,7 +59,12 @@ export const WorldMap: React.FC<Props> = ({
   if (isLoading) return <p>Loading world map…</p>;
   if (error)
     return <p style={{ color: "red" }}>Error: {(error as Error).message}</p>;
-  if (!data || data.length <= 1) return <p>No country click data available.</p>;
+  if (!data || data.length <= 1)
+    return (
+      <div className="m-50 text-gray-500">
+        <p>No Device Clicked Yet.</p>
+      </div>
+    );
 
   return (
     <div className="w-full">
