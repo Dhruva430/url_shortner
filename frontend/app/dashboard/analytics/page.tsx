@@ -104,7 +104,7 @@ function AnalyticsContent() {
                 Geographic distribution of link visits.
               </p>
             </div>
-            <WorldMap />
+            <WorldMap shortcode={selectedShortcode} days={30} />
           </div>
 
           {/* Bar Chart */}

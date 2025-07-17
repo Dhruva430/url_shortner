@@ -235,7 +235,7 @@ LIMIT 10
 type GetCountryStatsScopedParams struct {
 	ShortCode string        `json:"short_code"`
 	UserID    sql.NullInt32 `json:"user_id"`
-	Column3   int32         `json:"column_3"`
+	Days      int32         `json:"days"`
 }
 
 type GetCountryStatsScopedRow struct {
@@ -244,7 +244,7 @@ type GetCountryStatsScopedRow struct {
 }
 
 func (q *Queries) GetCountryStatsScoped(ctx context.Context, arg GetCountryStatsScopedParams) ([]GetCountryStatsScopedRow, error) {
-	rows, err := q.db.QueryContext(ctx, getCountryStatsScoped, arg.ShortCode, arg.UserID, arg.Column3)
+	rows, err := q.db.QueryContext(ctx, getCountryStatsScoped, arg.ShortCode, arg.UserID, arg.Days)
 	if err != nil {
 		return nil, err
 	}

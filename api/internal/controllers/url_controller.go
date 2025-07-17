@@ -600,3 +600,32 @@ func (c *URLController) LineChartStatsByShortcode(ctx *gin.Context) {
 	}
 	ctx.JSON(http.StatusOK, stats)
 }
+
+func (c *URLController) GetWorldMapStatsByShortcode(ctx *gin.Context) {
+	shortcode := ctx.Param("shortcode")
+	days := ctx.DefaultQuery("days", "30")
+
+	if shortcode == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "shortcode is required"})
+		return
+	}
+	userID := ctx.GetInt64("user_id")
+
+	stats, err := c.store.GetCountryStatsScoped(ctx, db.GetCountryStatsScopedParams{
+		ShortCode: shortcode,
+		UserID: sql.NullInt32{
+			Int32: int32(userID),
+			Valid: true,
+		},
+		Days: int32(utils.ParseDaysParam(days)),
+	})
+	println("Stats:", stats)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch world map stats"})
+		return
+	}
+	if stats == nil {
+		stats = []db.GetCountryStatsScopedRow{}
+	}
+	ctx.JSON(http.StatusOK, stats)
+}

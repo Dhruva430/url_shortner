@@ -255,7 +255,7 @@ SELECT
 FROM url_visits uv
 JOIN urls u ON u.id = uv.url_id
 WHERE u.short_code = $1 AND u.user_id = $2
-  AND uv.clicked_at >= NOW() - ($3::int * INTERVAL '1 day')
+  AND uv.clicked_at >= NOW() - (sqlc.arg(days)::int * INTERVAL '1 day')
 GROUP BY country
 ORDER BY clicks DESC
 LIMIT 10;

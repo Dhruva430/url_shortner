@@ -67,6 +67,7 @@ func SetupRouter(store *db.Queries, conn *sql.DB) *gin.Engine {
 
 	protected.GET("/analytics/piechart/:shortcode", URLController.GetPieChartDataByShorcode)
 	protected.GET("/analytics/linechart/:shortcode", URLController.LineChartStatsByShortcode)
+	protected.GET("/analytics/worldchart/:shortcode", URLController.GetWorldMapStatsByShortcode)
 	// protected.POST("/shorten/qr-with-logo", URLController.SaveQRCodeWithLogo)
 
 	protected.POST("/shorten", URLController.CreateShortURL)

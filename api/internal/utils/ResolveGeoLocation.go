@@ -3,6 +3,7 @@ package utils
 import (
 	"log"
 	"net"
+	"strconv"
 	"strings"
 
 	"github.com/ipinfo/go/v2/ipinfo"
@@ -44,4 +45,17 @@ func DetectDeviceTypeUA(userAgent string) string {
 	}
 
 	return "unknown"
+}
+
+func ParseDaysParam(days string) int {
+	if days == "" {
+		return 30 // Default to 30 days if not provided
+	}
+
+	parsedDays, err := strconv.Atoi(days)
+	if err != nil || parsedDays <= 0 {
+		log.Printf("Invalid days parameter: %s, defaulting to 30", days)
+		return 30
+	}
+	return parsedDays
 }

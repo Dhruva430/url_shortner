@@ -1,51 +1,51 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { Chart } from "react-google-charts";
+import { useQuery } from "@tanstack/react-query";
 
 interface CountryStat {
   country: string;
   clicks: number;
 }
 
-export function WorldMap() {
-  const [data, setData] = useState<(string | number)[][]>([
-    ["Country", "Clicks"],
-  ]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [maxClicks, setMaxClicks] = useState(0);
+type Props = {
+  shortcode: string;
+  days?: number;
+  title?: string;
+  height?: string;
+  parser?: (data: any[]) => [string, number][];
+};
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const res = await fetch("/api/protected/analytics/worldmap?days=30", {
-          credentials: "include",
-        });
-        if (!res.ok) throw new Error(`Status ${res.status}`);
-        const json: CountryStat[] = await res.json();
+export const WorldMap: React.FC<Props> = ({
+  days = 30,
+  shortcode,
+  title,
+  height = "500px",
+  parser,
+}) => {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["world-map", shortcode],
+    queryFn: async () => {
+      const res = await fetch(
+        `/api/protected/analytics/worldchart/${shortcode}?days=${days}`,
+        { credentials: "include" }
+      );
+      if (!res.ok) throw new Error(`Status ${res.status}`);
+      const json = await res.json();
 
-        if (!Array.isArray(json) || json.length === 0) {
-          setData([["Country", "Clicks"]]);
-          return;
-        }
+      if (!Array.isArray(json)) throw new Error("Expected array");
+      return parser
+        ? [["Country", "Clicks"], ...parser(json)]
+        : [
+            ["Country", "Clicks"],
+            ...json.map((r: CountryStat) => [r.country, r.clicks]),
+          ];
+    },
+  });
 
-        const table = [
-          ["Country", "Clicks"],
-          ...json.map((entry) => [entry.country, entry.clicks]),
-        ];
-        const max = Math.max(...json.map((r) => r.clicks), 0);
-
-        setData(table);
-        setMaxClicks(max);
-      } catch (e: any) {
-        setError(e.message || "Failed to load data.");
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    load();
-  }, []);
+  const maxClicks = data
+    ? Math.max(...data.slice(1).map((d) => d[1] as number), 0)
+    : 1;
 
   const options = {
     colorAxis: {
@@ -58,31 +58,34 @@ export function WorldMap() {
     defaultColor: "#f5f5f5",
   };
 
-  if (loading) return <p>Loading world map…</p>;
-  if (error) return <p style={{ color: "red" }}>Error: {error}</p>;
-  if (data.length <= 1) return <p>No country click data available.</p>;
+  if (isLoading) return <p>Loading world map…</p>;
+  if (error)
+    return <p style={{ color: "red" }}>Error: {(error as Error).message}</p>;
+  if (!data || data.length <= 1) return <p>No country click data available.</p>;
 
   return (
-    <Chart
-      chartType="GeoChart"
-      width="100%"
-      height="500px"
-      data={data}
-      options={options}
-      chartEvents={[
-        {
-          eventName: "select",
-          callback: ({ chartWrapper }) => {
-            const chart = chartWrapper?.getChart();
-            const selection = chart?.getSelection?.();
-            if (!selection?.length) return;
-
-            const rowIndex = selection[0].row + 1;
-            const [country, clicks] = data[rowIndex];
-            console.log(`Selected: ${country}, Clicks: ${clicks}`);
+    <div className="w-full">
+      {title && <h2 className="text-lg font-medium mb-2">{title}</h2>}
+      <Chart
+        chartType="GeoChart"
+        width="100%"
+        height={height}
+        data={data}
+        options={options}
+        chartEvents={[
+          {
+            eventName: "select",
+            callback: ({ chartWrapper }) => {
+              const chart = chartWrapper?.getChart();
+              const selection = chart?.getSelection?.();
+              if (!selection?.length) return;
+              const rowIndex = selection[0].row + 1;
+              const [country, clicks] = data[rowIndex];
+              console.log(`Selected: ${country}, Clicks: ${clicks}`);
+            },
           },
-        },
-      ]}
-    />
+        ]}
+      />
+    </div>
   );
-}
+};
