@@ -3,7 +3,6 @@ import React from "react";
 import { createPortal } from "react-dom";
 import { XIcon } from "lucide-react";
 import CreateLinkForm from "@/features/links/createLinkForm";
-import { LinkData } from "@/features/links/types";
 
 export default function CreateLinkDialog({
   open,

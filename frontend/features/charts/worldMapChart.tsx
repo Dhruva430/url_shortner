@@ -2,6 +2,7 @@
 import React from "react";
 import { Chart } from "react-google-charts";
 import { useQuery } from "@tanstack/react-query";
+import { map } from "leaflet";
 
 interface CountryStat {
   country: string;
@@ -9,7 +10,7 @@ interface CountryStat {
 }
 
 type Props = {
-  shortcode: string;
+  fetchURL: string; // Optional, fallback to context
   days?: number;
   title?: string;
   height?: string;
@@ -17,19 +18,16 @@ type Props = {
 };
 
 export const WorldMap: React.FC<Props> = ({
+  fetchURL,
   days = 30,
-  shortcode,
   title,
   height = "500px",
   parser,
 }) => {
   const { data, isLoading, error } = useQuery({
-    queryKey: ["world-map", shortcode],
+    queryKey: ["world-map", fetchURL],
     queryFn: async () => {
-      const res = await fetch(
-        `/api/protected/analytics/worldchart/${shortcode}?days=${days}`,
-        { credentials: "include" }
-      );
+      const res = await fetch(fetchURL, { credentials: "include" });
       if (!res.ok) throw new Error(`Status ${res.status}`);
       const json = await res.json();
 

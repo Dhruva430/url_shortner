@@ -1,11 +1,12 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Link2, Eye, MonitorCheck, Calendar1 } from "lucide-react";
+import { Link2, Eye, MonitorCheck, Calendar1, CreditCard } from "lucide-react";
 import DevicePieChart from "@/features/charts/pieChart";
 import LineChart from "@/features/charts/lineChart";
 import { WorldMap } from "@/features/charts/worldMapChart";
 import BarChart from "@/features/charts/barChart";
+import { PaymentPortal } from "@/components/razorpay/paymentPortal";
 
 interface DashboardStats {
   total_links: number;
@@ -18,6 +19,12 @@ export default function Dashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showPay, setShowPay] = useState(false);
+
+  const pieChartFetchURL = "/api/protected/analytics/devices";
+  const lineChartFetchURL = "/api/protected/analytics/line";
+  const worldMapFetchURL = "/api/protected/analytics/worldmap?days=30";
+  const barChartFetchURL = "/api/protected/analytics/bar";
 
   useEffect(() => {
     async function fetchStats() {
@@ -34,7 +41,6 @@ export default function Dashboard() {
         setLoading(false);
       }
     }
-
     fetchStats();
   }, []);
 
@@ -70,7 +76,18 @@ export default function Dashboard() {
 
   return (
     <div className="flex-1 space-y-4 p-6 pt-4">
-      {/* --- Metric Cards --- */}
+      {/* Pay Button */}
+      <div className="flex justify-end">
+        <button
+          onClick={() => setShowPay(true)}
+          className="inline-flex items-center gap-2 rounded bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+        >
+          <CreditCard className="h-4 w-4" />
+          Add Credits / Pay
+        </button>
+      </div>
+
+      {/* Metric Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {loading ? (
           Array.from({ length: 4 }).map((_, i) => (
@@ -103,7 +120,7 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* --- Charts --- */}
+      {/* Charts */}
       <div className="grid gap-4 md:grid-cols-2">
         {/* Pie */}
         <div className="rounded-lg border bg-white shadow-sm">
@@ -115,10 +132,7 @@ export default function Dashboard() {
               Breakdown of devices used to visit your links.
             </p>
           </div>
-          <DevicePieChart
-            fetchURL="/api/protected/analytics/devices"
-            title="Device Types"
-          />
+          <DevicePieChart fetchURL={pieChartFetchURL} />
         </div>
 
         {/* Line */}
@@ -131,7 +145,15 @@ export default function Dashboard() {
               Growth of clicks and links created.
             </p>
           </div>
-          <LineChart />
+          <LineChart
+            fetchURL={lineChartFetchURL}
+            lines={["clicks", "links"]}
+            lineLabels={{
+              clicks: "Clicks",
+              links: "New Link Clicks",
+            }}
+            lineColors={{ clicks: "#00b3b3", links: "#f25c54" }}
+          />
         </div>
 
         {/* World Map */}
@@ -144,7 +166,7 @@ export default function Dashboard() {
               Geographic distribution of link visits.
             </p>
           </div>
-          <WorldMap />
+          <WorldMap fetchURL={worldMapFetchURL} />
         </div>
 
         {/* Bar Chart */}
@@ -158,10 +180,13 @@ export default function Dashboard() {
             </p>
           </div>
           <div className="flex flex-grow items-center justify-center ">
-            <BarChart />
+            <BarChart fetchURL={barChartFetchURL} />
           </div>
         </div>
       </div>
+
+      {/* Payment Portal (portal to document.body) */}
+      <PaymentPortal open={showPay} onClose={() => setShowPay(false)} />
     </div>
   );
 }

@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/sidebar";
 import AppSidebar from "@/components/app-sidebar";
 import Header from "@/components/header";
-import { useAuth } from "@/features/auth/hooks/auth/authProvider";
+import { useAuth } from "@/features/auth/hooks/authProvider";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 

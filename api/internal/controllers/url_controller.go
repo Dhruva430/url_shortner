@@ -619,13 +619,49 @@ func (c *URLController) GetWorldMapStatsByShortcode(ctx *gin.Context) {
 		},
 		Days: int32(utils.ParseDaysParam(days)),
 	})
-	println("Stats:", stats)
+
+	// remove unknown countries from stats
+	var filteredStats []db.GetCountryStatsScopedRow
+	for _, s := range stats {
+		if s.Country != "unknown" {
+			filteredStats = append(filteredStats, s)
+		}
+	}
+	stats = filteredStats
+	println("World map stats:", stats)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch world map stats"})
 		return
 	}
 	if stats == nil {
 		stats = []db.GetCountryStatsScopedRow{}
+	}
+	ctx.JSON(http.StatusOK, stats)
+}
+
+func (c *URLController) GetBarChartStatsByShortcode(ctx *gin.Context) {
+	shortcode := ctx.Param("shortcode")
+	if shortcode == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "shortcode is required"})
+		return
+	}
+
+	userID := ctx.GetInt64("user_id")
+
+	stats, err := c.store.GetMonthlyClicksScoped(ctx, db.GetMonthlyClicksScopedParams{
+		ShortCode: shortcode,
+		UserID: sql.NullInt32{
+			Int32: int32(userID),
+			Valid: true,
+		},
+	})
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch bar chart stats"})
+		return
+	}
+
+	if stats == nil {
+		stats = []db.GetMonthlyClicksScopedRow{}
 	}
 	ctx.JSON(http.StatusOK, stats)
 }

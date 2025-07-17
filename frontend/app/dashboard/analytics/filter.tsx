@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useEffect, useRef } from "react";
 
 type Option = {
   id: string;
@@ -21,13 +22,28 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const filteredOptions = options.filter((opt) =>
     opt.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      const path = event.composedPath?.() || [];
+      if (containerRef.current && !path.includes(containerRef.current)) {
+        setIsOpen(false);
+      }
+    }
+
+    window.addEventListener("click", handleClickOutside);
+    return () => {
+      window.removeEventListener("click", handleClickOutside);
+    };
+  }, []);
+
   return (
-    <div className="relative w-64">
+    <div className="relative w-64 " ref={containerRef}>
       <input
         type="text"
         placeholder={placeholder}

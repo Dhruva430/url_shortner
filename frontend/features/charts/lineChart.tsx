@@ -11,7 +11,6 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { useQuery } from "@tanstack/react-query";
-import { useAnalyticsContext } from "@/contexts/analyticsContext";
 
 type LineKey = string;
 
@@ -24,9 +23,10 @@ interface FormattedRow extends RawRow {
 }
 
 interface Props {
-  shortcode?: string; // Optional, fallback to context
+  fetchURL: string;
   lines: LineKey[];
   lineColors?: Record<LineKey, string>;
+  lineLabels: Record<LineKey, string>;
   height?: number;
   parser?: (rows: RawRow[]) => FormattedRow[];
 }
@@ -63,29 +63,25 @@ const CustomTooltip: React.FC<{
 };
 
 export default function ReusableLineChart({
-  shortcode: propShortcode,
+  lineLabels,
+  fetchURL,
   lines,
   lineColors = {},
   height = 300,
   parser,
 }: Props) {
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
-  const contextShortcode = useAnalyticsContext()?.selectedShortcode ?? null;
-  const shortcode = propShortcode || contextShortcode;
 
   const {
     data = [],
     isLoading,
     isError,
   } = useQuery<FormattedRow[]>({
-    queryKey: ["lineChart", shortcode],
+    queryKey: ["lineChart", fetchURL],
     queryFn: async () => {
-      const res = await fetch(
-        `/api/protected/analytics/linechart/${shortcode}`,
-        {
-          credentials: "include",
-        }
-      );
+      const res = await fetch(fetchURL, {
+        credentials: "include",
+      });
       if (!res.ok) throw new Error(`Status ${res.status}`);
 
       const raw: RawRow[] = await res.json();
@@ -97,7 +93,6 @@ export default function ReusableLineChart({
             formattedDate: formatDate(d.date),
           }));
     },
-    enabled: !!shortcode,
   });
 
   if (isLoading) return <p className="text-gray-500">Loading chart…</p>;
@@ -126,7 +121,7 @@ export default function ReusableLineChart({
               key={key}
               type="monotone"
               dataKey={key}
-              name={capitalizeWords(key)}
+              name={lineLabels?.[key] ?? capitalizeWords(key)}
               stroke={color}
               strokeWidth={2}
               dot={{ r: 4, fill: "#fff", stroke: color, strokeWidth: 2 }}

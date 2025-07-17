@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Exo } from "next/font/google";
 import "./globals.css";
 import QueryProvider from "./providers/queryProvider";
-import { AuthProvider } from "@/features/auth/hooks/auth/authProvider";
+import { AuthProvider } from "@/features/auth/hooks/authProvider";
 
 const exo = Exo({
   variable: "--font-exo",

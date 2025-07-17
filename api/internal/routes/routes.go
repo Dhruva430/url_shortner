@@ -7,6 +7,7 @@ import (
 	"api/internal/db"
 	"api/internal/errors"
 	"api/internal/middleware"
+	"api/internal/transaction"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -59,7 +60,6 @@ func SetupRouter(store *db.Queries, conn *sql.DB) *gin.Engine {
 	protected.GET("/titles", URLController.GetTitleAndUrlByUser)
 
 	protected.GET("/analytics/summary", URLController.GetDashboardData)
-	// protected.GET("/analytics/devices/:shortcode", URLController.GetDeviceTypeStats)
 	protected.GET("/analytics/devices", URLController.GetDeviceTypeStats)
 	protected.GET("/analytics/line", URLController.GetLineChartStats)
 	protected.GET("/analytics/bar", URLController.GetMonthlyClicks)
@@ -68,7 +68,9 @@ func SetupRouter(store *db.Queries, conn *sql.DB) *gin.Engine {
 	protected.GET("/analytics/piechart/:shortcode", URLController.GetPieChartDataByShorcode)
 	protected.GET("/analytics/linechart/:shortcode", URLController.LineChartStatsByShortcode)
 	protected.GET("/analytics/worldchart/:shortcode", URLController.GetWorldMapStatsByShortcode)
-	// protected.POST("/shorten/qr-with-logo", URLController.SaveQRCodeWithLogo)
+	protected.GET("/analytics/barchart/:shortcode", URLController.GetBarChartStatsByShortcode)
+
+	protected.POST("/payment/createorder", transaction.CreateOrderHandler)
 
 	protected.POST("/shorten", URLController.CreateShortURL)
 	protected.POST("edit/:shortcode", URLController.UpdateShortURL)

@@ -1,10 +1,20 @@
 "use client";
-import React, { useEffect, useState } from "react";
+
+import { useQuery } from "@tanstack/react-query";
 import { Chart } from "react-google-charts";
 import moment from "moment";
+
 interface ApiRow {
-  month: Date;
+  month: string | Date;
   click_count: number;
+}
+
+interface BarChartProps {
+  fetchURL: string;
+  title?: string;
+  color?: string;
+  width?: number;
+  height?: number;
 }
 
 const MONTH_ORDER = [
@@ -22,82 +32,77 @@ const MONTH_ORDER = [
   "Dec",
 ];
 
-const BarChart: React.FC = () => {
-  const [data, setData] = useState<(string | number)[][]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [maxClicks, setMaxClicks] = useState(0);
+function formatBarChartData(rows: ApiRow[]) {
+  const currentMonthNum = moment().month();
+  const monthsToShow = [
+    ...MONTH_ORDER.slice(currentMonthNum + 1),
+    ...MONTH_ORDER.slice(0, currentMonthNum + 1),
+  ];
 
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        const res = await fetch("/api/protected/analytics/bar", {
-          credentials: "include",
-        });
-        if (!res.ok) throw new Error(`Server error: ${res.status}`);
+  const monthClicks: Record<string, number> = Object.fromEntries(
+    MONTH_ORDER.map((m) => [m, 0])
+  );
 
-        let rows: ApiRow[] = await res.json();
-
-        if (!Array.isArray(rows) || rows.length === 0) {
-          setData([]);
-          return;
-        }
-
-        let monthRows = rows.map((r) => ({
-          month: moment(r.month).format("MMM"),
-          clicks: r.click_count || 0,
-        }));
-        let data: Record<string, number> = {};
-
-        const currentMonthNum = moment().month();
-        let monthsToShow = [
-          ...MONTH_ORDER.slice(currentMonthNum + 1),
-          ...MONTH_ORDER.slice(0, currentMonthNum + 1),
-        ];
-
-        MONTH_ORDER.forEach((month) => {
-          data[month] = 0;
-        });
-        const max = Math.max(...rows.map((r) => r.click_count));
-
-        monthRows.forEach((r) => {
-          data[r.month] += r.clicks;
-        });
-        monthRows = [];
-        monthsToShow.forEach((month) => {
-          monthRows.push({ month, clicks: data[month] });
-        });
-
-        const chartData: (string | number)[][] = [
-          ["Month", "Clicks"],
-          ...monthRows.map((r) => [r.month, r.clicks]),
-        ];
-
-        setData(chartData);
-        setMaxClicks(max);
-      } catch (err: any) {
-        setError(err.message || "Unknown error");
-      } finally {
-        setLoading(false);
-      }
+  rows.forEach((row) => {
+    const month = moment(row.month).format("MMM");
+    if (monthClicks[month] !== undefined) {
+      monthClicks[month] += row.click_count || 0;
     }
+  });
 
-    fetchData();
-  }, []);
+  const formatted: [string, number][] = monthsToShow.map((month) => [
+    month,
+    monthClicks[month],
+  ]);
+
+  const max = Math.max(...formatted.map(([, count]) => count));
+
+  return {
+    chartData: [["Month", "Clicks"], ...formatted],
+    max,
+  };
+}
+
+const BarChart: React.FC<BarChartProps> = ({
+  fetchURL,
+  title = "Monthly Clicks",
+  color = "#2a9d90",
+  width = 600,
+  height = 400,
+}) => {
+  const { data, isLoading, isError, error } = useQuery({
+    queryKey: ["barChart", fetchURL],
+    queryFn: async () => {
+      const res = await fetch(fetchURL, {
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error(`Error ${res.status}`);
+      const json: ApiRow[] = await res.json();
+      return formatBarChartData(json);
+    },
+    staleTime: 10 * 60 * 1000,
+    retry: 1,
+  });
+
+  if (isLoading) return <p>Loading chart…</p>;
+  if (isError)
+    return <p className="text-red-600">Error: {(error as Error).message}</p>;
+  if (!data || data.chartData.length <= 1) return <p>No data available.</p>;
+
   const chartOptions = {
-    colors: ["#2a9d90"],
+    colors: [color],
     chartArea: { width: "70%", height: "70%" },
-    height: 400,
-    width: 600,
+    width,
+    height,
     hAxis: {
       title: "Total Clicks",
       format: "#,###",
       viewWindow: { min: 0 },
       ticks: (() => {
         const ticks = [];
-        const step = Math.max(1, Math.floor(maxClicks / 5));
-        for (let i = 0; i <= maxClicks; i += step) ticks.push(i);
-        if (ticks[ticks.length - 1] !== maxClicks) ticks.push(maxClicks);
+        const step = Math.max(1, Math.floor(data.max / 5));
+        for (let i = 0; i <= data.max; i += step) ticks.push(i);
+        if (ticks[ticks.length - 1] !== data.max) ticks.push(data.max);
         return ticks;
       })(),
     },
@@ -107,11 +112,12 @@ const BarChart: React.FC = () => {
     },
   };
 
-  if (loading) return <p>Loading bar chart…</p>;
-  if (error) return <p style={{ color: "red" }}>Error: {error}</p>;
-  if (data.length <= 1) return <p>No click data for the last 12 months.</p>;
-
-  return <Chart chartType="Bar" data={data} options={chartOptions} />;
+  return (
+    <div className="flex flex-col gap-2">
+      {title && <h2 className="text-lg font-semibold text-black">{title}</h2>}
+      <Chart chartType="Bar" data={data.chartData} options={chartOptions} />
+    </div>
+  );
 };
 
 export default BarChart;

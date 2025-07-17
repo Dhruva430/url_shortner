@@ -1,8 +1,6 @@
 "use client";
-import React, { useState } from "react";
-import { Bell, Plus } from "lucide-react";
+
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import CreateLinkDialog from "@/components/createLinkDialog";
 
 export default function Header() {
   return (

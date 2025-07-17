@@ -19,7 +19,7 @@ type DataItem = {
 };
 
 type Props = {
-  shortcode: string;
+  fetchURL: string;
   title?: string;
   height?: number;
 };
@@ -34,7 +34,7 @@ const COLORS: Record<DeviceType, string> = {
 const DEVICE_TYPES: DeviceType[] = ["desktop", "mobile", "tablet", "unknown"];
 
 export default function DevicePieChart({
-  shortcode,
+  fetchURL,
   title,
   height = 300,
 }: Props) {
@@ -43,14 +43,11 @@ export default function DevicePieChart({
     isLoading,
     isError,
   } = useQuery<DataItem[]>({
-    queryKey: ["deviceStats", shortcode],
+    queryKey: ["deviceStats", fetchURL],
     queryFn: async () => {
-      const res = await fetch(
-        `/api/protected/analytics/piechart/${shortcode}`,
-        {
-          credentials: "include",
-        }
-      );
+      const res = await fetch(fetchURL, {
+        credentials: "include",
+      });
       if (!res.ok) throw new Error(`Status ${res.status}`);
 
       const rows: { device_type: string; count: number }[] = await res.json();
@@ -71,7 +68,6 @@ export default function DevicePieChart({
         trend: "same",
       }));
     },
-    enabled: !!shortcode,
   });
 
   if (isLoading) return <p>Loading…</p>;

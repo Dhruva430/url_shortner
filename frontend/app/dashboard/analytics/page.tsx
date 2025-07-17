@@ -28,6 +28,11 @@ export default function AnalyticsPage() {
 function AnalyticsContent() {
   const { selectedShortcode, setSelectedShortcode } = useAnalyticsContext();
 
+  const lineChartFetchURL = `/api/protected/analytics/linechart/${selectedShortcode}`;
+  const barChartFetchURL = `/api/protected/analytics/barchart/${selectedShortcode}`;
+  const worldMapFetchURL = `/api/protected/analytics/worldchart/${selectedShortcode}?days=30`;
+  const pieChartFetchURL = `/api/protected/analytics/piechart/${selectedShortcode}`;
+
   const {
     data: options = [],
     isLoading,
@@ -71,10 +76,7 @@ function AnalyticsContent() {
                 Breakdown of devices used to visit your links.
               </p>
             </div>
-            <DevicePieChart
-              shortcode={selectedShortcode}
-              title="Device Types"
-            />
+            <DevicePieChart fetchURL={pieChartFetchURL} />
           </div>
 
           {/* Line Chart */}
@@ -88,8 +90,12 @@ function AnalyticsContent() {
               </p>
             </div>
             <ReusableLineChart
-              shortcode={selectedShortcode}
-              lines={["clicks", "links"]}
+              fetchURL={lineChartFetchURL}
+              lines={["clicks", "Links"]}
+              lineLabels={{
+                clicks: "Latest Clicks",
+                links: "Links Created",
+              }}
               lineColors={{ clicks: "#00b3b3", links: "#f25c54" }}
             />
           </div>
@@ -104,7 +110,8 @@ function AnalyticsContent() {
                 Geographic distribution of link visits.
               </p>
             </div>
-            <WorldMap shortcode={selectedShortcode} days={30} />
+            {/* TODO: remove the api key */}
+            <WorldMap fetchURL={worldMapFetchURL} days={30} />
           </div>
 
           {/* Bar Chart */}
@@ -118,7 +125,7 @@ function AnalyticsContent() {
               </p>
             </div>
             <div className="flex flex-grow items-center justify-center">
-              <BarChart />
+              <BarChart fetchURL={barChartFetchURL} />
             </div>
           </div>
         </div>

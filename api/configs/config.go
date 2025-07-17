@@ -21,3 +21,11 @@ func GetAPIURL() string {
 func GetDBSource() string {
 	return os.Getenv("DB_SOURCE")
 }
+
+func GetRazorpayKeyID() string {
+	return os.Getenv("RAZORPAY_KEY_ID")
+}
+
+func GetRazorpayKeySecret() string {
+	return os.Getenv("RAZORPAY_KEY_SECRET")
+}
