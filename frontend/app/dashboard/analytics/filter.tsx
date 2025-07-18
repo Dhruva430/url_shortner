@@ -43,7 +43,7 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
   }, []);
 
   return (
-    <div className="relative w-64 " ref={containerRef}>
+    <div className="relative w-80 " ref={containerRef}>
       <input
         type="text"
         placeholder={placeholder}

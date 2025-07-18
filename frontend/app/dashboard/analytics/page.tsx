@@ -10,6 +10,7 @@ import {
   useAnalyticsContext,
 } from "@/contexts/analyticsContext";
 import { useQuery } from "@tanstack/react-query";
+import ChartCard from "../chartCard";
 
 type Options = {
   id: string;
@@ -53,91 +54,63 @@ function AnalyticsContent() {
   };
 
   return (
-    <>
-      <div className="flex flex-col items-center">
-        <div className="mb-4">
+    <div className="min-h-screen bg-gray-100 px-6 py-8">
+      <div className="max-w-7xl mx-auto space-y-8">
+        <div className="w-full max-w-md mx-auto bg-white rounded-xl shadow p-4">
           {isLoading ? (
-            <p>Loading options...</p>
+            <p className="text-center text-gray-500">Loading options...</p>
           ) : isError ? (
-            <p className="text-red-500">Error loading options</p>
+            <p className="text-red-500 text-center">Error loading options</p>
           ) : (
-            <div className="">
-              <FilterDropdown onSelect={handleSelect} options={options} />
-            </div>
+            <FilterDropdown onSelect={handleSelect} options={options} />
           )}
         </div>
 
         {selectedShortcode ? (
-          <div className="grid gap-4 md:grid-cols-2">
-            {/* Pie Chart */}
-            <div className="rounded-lg border bg-white shadow-sm">
-              <div className="p-6 pb-0 space-y-1.5">
-                <h2 className="text-lg font-semibold tracking-tight text-black">
-                  Device Usage
-                </h2>
-                <p className="text-sm text-gray-500">
-                  Breakdown of devices used to visit your links.
-                </p>
-              </div>
+          <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 2xl:grid-cols-2">
+            <ChartCard
+              title="Device Usage"
+              desc="Breakdown of devices used to visit your links."
+            >
               <DevicePieChart fetchURL={pieChartFetchURL} />
-            </div>
+            </ChartCard>
 
-            {/* Line Chart */}
-            <div className="rounded-lg border bg-white shadow-sm">
-              <div className="p-6 pb-0 space-y-1.5">
-                <h2 className="text-lg font-semibold tracking-tight text-black">
-                  Link Performance
-                </h2>
-                <p className="text-sm text-gray-500">
-                  Growth of clicks and links created.
-                </p>
-              </div>
+            <ChartCard
+              title="Link Performance"
+              desc="Growth of clicks and links created."
+            >
               <ReusableLineChart
                 fetchURL={lineChartFetchURL}
                 lines={["clicks", "Links"]}
-                lineLabels={{
-                  clicks: "Latest Clicks",
-                  links: "Links Created",
-                }}
+                lineLabels={{ clicks: "Latest Clicks", links: "Links Created" }}
                 lineColors={{ clicks: "#00b3b3", links: "#f25c54" }}
               />
-            </div>
+            </ChartCard>
 
-            {/* World Map */}
-            <div className="rounded-lg border bg-white shadow-sm">
-              <div className="p-6 pb-0 space-y-1.5">
-                <h2 className="text-lg font-semibold tracking-tight text-black">
-                  World Map
-                </h2>
-                <p className="text-sm text-gray-500">
-                  Geographic distribution of link visits.
-                </p>
-              </div>
-              {/* TODO: remove the api key */}
+            <ChartCard
+              title="World Map"
+              desc="Geographic distribution of link visits."
+            >
               <WorldMap fetchURL={worldMapFetchURL} days={30} />
-            </div>
+            </ChartCard>
 
-            {/* Bar Chart */}
-            <div className="rounded-lg border bg-white shadow-sm flex flex-col">
-              <div className="p-6 pb-0 space-y-1.5">
-                <h2 className="text-lg font-semibold tracking-tight text-black">
-                  Monthly Clicks
-                </h2>
-                <p className="text-sm text-gray-500">
-                  Total link clicks over the past year.
-                </p>
-              </div>
-              <div className="flex flex-grow items-center justify-center">
+            <ChartCard
+              title="Monthly Clicks"
+              desc="Total link clicks over the past year."
+            >
+              <div className="h-full flex items-center justify-center">
                 <BarChart fetchURL={barChartFetchURL} />
               </div>
-            </div>
+            </ChartCard>
           </div>
         ) : (
-          <p className="text-gray-600 text-sm mt-6">
+          <p className="text-center text-gray-500 text-sm">
             Select a link to view its analytics.
           </p>
         )}
       </div>
-    </>
+    </div>
   );
 }
+
+// Reusable Card
