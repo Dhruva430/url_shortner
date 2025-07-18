@@ -7,6 +7,7 @@ export function useLinks() {
   const {
     data: links,
     isLoading,
+    error,
     refetch,
   } = useQuery<LinkData[]>({
     queryKey: ["links"],
@@ -22,5 +23,6 @@ export function useLinks() {
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
   });
-  return { links, isLoading, refetch };
+
+  return { links, isLoading, error, refetch };
 }
