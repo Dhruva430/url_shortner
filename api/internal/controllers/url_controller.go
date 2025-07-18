@@ -85,7 +85,6 @@ func (c *URLController) CreateShortURL(ctx *gin.Context) {
 	}
 	thumbnail := "https://www.google.com/s2/favicons?sz=128&domain_url=" + domain
 
-	println("Generated shortcode:", code)
 	arg := db.CreateShortURLParams{
 		OriginalUrl:  req.OriginalURL,
 		ShortCode:    code,
@@ -137,11 +136,19 @@ func (c *URLController) GetUserURLs(ctx *gin.Context) {
 			Clicks:      int(link.ClickCount),
 			CreatedAt:   utils.FormatNullTime(link.CreatedAt),
 			ExpireAt:    utils.FormatNullTime(link.ExpireAt),
+			IsExpired:   isExpired(link.ExpireAt),
 			Password:    password,
 		})
 	}
 
 	ctx.JSON(200, result)
+}
+
+func isExpired(expireAt sql.NullTime) bool {
+	if !expireAt.Valid {
+		return false
+	}
+	return expireAt.Time.Before(time.Now())
 }
 
 func (c *URLController) RedirectToOriginalURL(ctx *gin.Context) {

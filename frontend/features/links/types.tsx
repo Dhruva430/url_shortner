@@ -7,5 +7,6 @@ export interface LinkData {
   created_at: string;
   password: boolean;
   thumbnail?: string;
+  is_expired?: boolean;
   expire_at?: string;
 }

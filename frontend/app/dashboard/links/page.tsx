@@ -38,9 +38,6 @@ export default function LinksDashboard() {
   const queryClient = useQueryClient();
   const { links, isLoading, error } = useLinks();
 
-  const shortCode = qrLink?.short_url.split("/").pop();
-  const qrImage = `/api/protected/links/${shortCode}`;
-
   const handleQrCode = (link: LinkData) => {
     setQrLink(link);
     setQrOpen(true);
@@ -74,7 +71,6 @@ export default function LinksDashboard() {
   // Helper functions for link status
   const isExpired = (link: LinkData) => {
     if (!link.expire_at) return false;
-    console.log(link.expire_at);
     return new Date(link.expire_at) < new Date();
   };
 

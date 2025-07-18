@@ -1,6 +1,6 @@
 "use client";
 
-import { QrCode, Trash2, Eye, Copy, Calendar, Pen } from "lucide-react";
+import { QrCode, Trash2, Eye, Copy, Calendar, Pen, Shield } from "lucide-react";
 import type { LinkData } from "@/features/links/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -61,8 +61,7 @@ export default function EnhancedCard({
   };
 
   const isExpired = () => {
-    if (!link.expire_at) return false;
-    return new Date(link.expire_at) < new Date();
+    return link.is_expired;
   };
 
   const isProtected = () => {
@@ -75,7 +74,7 @@ export default function EnhancedCard({
 
   // Render status badges
   const renderStatusBadges = () => (
-    <div className="flex gap-1 flex-wrap">
+    <div className="flex gap-2 flex-wrap">
       {isExpired() && (
         <Badge
           variant="destructive"
@@ -87,8 +86,9 @@ export default function EnhancedCard({
       {isProtected() && (
         <Badge
           variant="secondary"
-          className="text-xs bg-white hover:bg-gray-800 text-black"
+          className="text-xs bg-white border-black border text-black"
         >
+          <Shield />
           Protected
         </Badge>
       )}

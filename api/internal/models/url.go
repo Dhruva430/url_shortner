@@ -31,5 +31,6 @@ type LinkResponse struct {
 	CreatedAt   string `json:"created_at"`
 	Thumbnail   string `json:"thumbnail,omitempty"`
 	ExpireAt    string `json:"expire_at,omitempty"`
+	IsExpired   bool   `json:"is_expired"`
 	Password    bool   `json:"password,omitempty"`
 }
