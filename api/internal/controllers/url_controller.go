@@ -145,10 +145,10 @@ func (c *URLController) GetUserURLs(ctx *gin.Context) {
 }
 
 func (c *URLController) RedirectToOriginalURL(ctx *gin.Context) {
-	shortCode := ctx.Param("shortcode")
+	shortcode := ctx.Param("shortcode")
 	password := ctx.Query("password")
 
-	url, err := c.store.GetOriginalURL(ctx, shortCode)
+	url, err := c.store.GetOriginalURL(ctx, shortcode)
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, gin.H{"error": "Short URL not found"})
 		return
@@ -159,12 +159,13 @@ func (c *URLController) RedirectToOriginalURL(ctx *gin.Context) {
 		return
 	}
 
-	// Check password if protected
 	if url.PasswordHash.Valid && url.PasswordHash.String != "" {
 		if password == "" {
-			ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Password required"})
+
+			ctx.Redirect(http.StatusTemporaryRedirect, "http://localhost:3000/redirect/"+shortcode)
 			return
 		}
+
 		if !utils.CheckPasswordHash(password, url.PasswordHash.String) {
 			ctx.JSON(http.StatusForbidden, gin.H{"error": "Invalid password"})
 			return
@@ -192,16 +193,39 @@ func (c *URLController) RedirectToOriginalURL(ctx *gin.Context) {
 			Region:     sql.NullString{String: region, Valid: region != ""},
 			City:       sql.NullString{String: city, Valid: city != ""},
 		})
-	}(shortCode, urlID, deviceType, ipAddress, userAgent, referrer)
+	}(shortcode, urlID, deviceType, ipAddress, userAgent, referrer)
 
 	ctx.Redirect(http.StatusFound, url.OriginalUrl)
 }
 
-func getUserIDNullable(val any, ok bool) sql.NullInt32 {
-	if !ok {
-		return sql.NullInt32{}
+func (c *URLController) VerifyAndRedirect(ctx *gin.Context) {
+	shortCode := ctx.Param("shortcode")
+
+	var req struct {
+		Password string `json:"password"`
 	}
-	return sql.NullInt32{Int32: int32(val.(int64)), Valid: true}
+	var response struct {
+		OriginalURL string `json:"original_url"`
+	}
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		return
+	}
+
+	url, err := c.store.GetOriginalURL(ctx, shortCode)
+	if err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{"error": "Short URL not found"})
+		return
+	}
+
+	if !url.PasswordHash.Valid || !utils.CheckPasswordHash(req.Password, url.PasswordHash.String) {
+		ctx.JSON(http.StatusForbidden, gin.H{"error": "Invalid password"})
+		return
+	}
+
+	response.OriginalURL = url.OriginalUrl
+
+	ctx.JSON(http.StatusOK, response)
 }
 
 func (c *URLController) DeleteShortURL(ctx *gin.Context) {
@@ -517,7 +541,7 @@ func (c *URLController) GetClicksByShortcode(ctx *gin.Context) {
 		return
 	}
 
-	url, err := c.store.GetURLByShortCode(ctx, shortcode)
+	url, err := c.store.GetOriginalURL(ctx, shortcode)
 	if err != nil || !url.UserID.Valid || int64(url.UserID.Int32) != userID {
 		ctx.JSON(http.StatusForbidden, gin.H{"error": "URL not found or access denied"})
 		return

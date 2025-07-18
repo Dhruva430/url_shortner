@@ -3,11 +3,6 @@ SELECT * FROM urls
 WHERE short_code = $1
 LIMIT 1;
 
--- name: GetURLByShortCode :one
-SELECT * FROM urls
-WHERE short_code = $1
-LIMIT 1;
-
 
 -- name: IncrementClickCount :exec
 UPDATE urls

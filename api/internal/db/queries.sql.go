@@ -747,30 +747,6 @@ func (q *Queries) GetTitleAndUrlByUser(ctx context.Context, userID sql.NullInt32
 	return items, nil
 }
 
-const getURLByShortCode = `-- name: GetURLByShortCode :one
-SELECT id, original_url, title, short_code, thumbnail, click_count, password_hash, created_at, expire_at, user_id FROM urls
-WHERE short_code = $1
-LIMIT 1
-`
-
-func (q *Queries) GetURLByShortCode(ctx context.Context, shortCode string) (Url, error) {
-	row := q.db.QueryRowContext(ctx, getURLByShortCode, shortCode)
-	var i Url
-	err := row.Scan(
-		&i.ID,
-		&i.OriginalUrl,
-		&i.Title,
-		&i.ShortCode,
-		&i.Thumbnail,
-		&i.ClickCount,
-		&i.PasswordHash,
-		&i.CreatedAt,
-		&i.ExpireAt,
-		&i.UserID,
-	)
-	return i, err
-}
-
 const getURLVisits = `-- name: GetURLVisits :many
 SELECT id, url_id, user_id, ip_address, user_agent, device_type, referrer, country, region, city, clicked_at FROM url_visits
 WHERE url_id = $1

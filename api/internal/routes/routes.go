@@ -84,6 +84,7 @@ func SetupRouter(store *db.Queries, conn *sql.DB) *gin.Engine {
 		})
 	})
 	router.GET("/s/:shortcode", URLController.RedirectToOriginalURL)
+	router.POST("/s/:shortcode/unlock", URLController.VerifyAndRedirect)
 
 	return r
 }

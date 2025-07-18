@@ -85,8 +85,8 @@ function AnalyticsContent() {
         </div>
 
         {/* Filter Section */}
-        <Card className="mb-8 border-0 shadow-lg bg-white/80 backdrop-blur-sm relative z-30 overflow-visible">
-          <CardHeader className="pb-4">
+        <Card className="mb-8 border-0 shadow-lg bg-white/80 backdrop-blur-sm relative z-30 overflow-visible flex flex-col items-center">
+          <CardHeader className="pb-4 flex flex-col items-center shrink-0 min-w-120">
             <CardTitle className="flex items-center gap-2 text-xl">
               <Link className="w-5 h-5 text-blue-600" />
               Select Link to Analyze

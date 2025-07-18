@@ -28,7 +28,6 @@ type Querier interface {
 	GetMonthlyClicksScoped(ctx context.Context, arg GetMonthlyClicksScopedParams) ([]GetMonthlyClicksScopedRow, error)
 	GetOriginalURL(ctx context.Context, shortCode string) (Url, error)
 	GetTitleAndUrlByUser(ctx context.Context, userID sql.NullInt32) ([]GetTitleAndUrlByUserRow, error)
-	GetURLByShortCode(ctx context.Context, shortCode string) (Url, error)
 	GetURLVisits(ctx context.Context, urlID int32) ([]UrlVisit, error)
 	GetUrlsByUserID(ctx context.Context, userID sql.NullInt32) ([]Url, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
