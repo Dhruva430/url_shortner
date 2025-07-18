@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import EnhancedCard from "./card";
+import EditLinkDialog from "@/components/editLinkDialog";
 
 export default function LinksDashboard() {
   const [open, setOpen] = useState(false);
@@ -35,7 +36,7 @@ export default function LinksDashboard() {
   >("all");
 
   const queryClient = useQueryClient();
-  const { links, isLoading, error, refetch } = useLinks();
+  const { links, isLoading, error } = useLinks();
 
   const shortCode = qrLink?.short_url.split("/").pop();
   const qrImage = `/api/protected/links/${shortCode}`;
@@ -43,6 +44,13 @@ export default function LinksDashboard() {
   const handleQrCode = (link: LinkData) => {
     setQrLink(link);
     setQrOpen(true);
+  };
+
+  const [editOpen, setEditOpen] = useState(false);
+
+  const handleEditLink = (link: LinkData) => {
+    setSelectedLink(link);
+    setEditOpen(true);
   };
 
   const handleDelete = async (shortUrl: string) => {
@@ -66,6 +74,7 @@ export default function LinksDashboard() {
   // Helper functions for link status
   const isExpired = (link: LinkData) => {
     if (!link.expire_at) return false;
+    console.log(link.expire_at);
     return new Date(link.expire_at) < new Date();
   };
 
@@ -132,6 +141,7 @@ export default function LinksDashboard() {
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
       {/* Header Section */}
+
       <div className="text-center space-y-4 mb-8">
         <div className="flex items-center justify-center gap-3">
           <div className="p-2 bg-primary/10 rounded-lg">
@@ -144,22 +154,17 @@ export default function LinksDashboard() {
           codes
         </p>
         <div className="flex flex-col sm:flex-row gap-4 items-center justify-center">
-          <Button
-            onClick={() => setOpen(true)}
-            size="lg"
-            className="gap-2 px-8"
-          >
-            <Plus className="w-5 h-5" />
-            Create New Link
-          </Button>
           {links && links.length > 0 && (
             <div className="flex gap-2 flex-wrap justify-center">
-              <Badge variant="secondary" className="text-sm px-3 py-1">
+              <Badge
+                variant="secondary"
+                className="text-sm bg-darkBackground text-white px-3 py-1"
+              >
                 {statusCounts.all} total
               </Badge>
               <Badge
                 variant="outline"
-                className="text-sm px-3 py-1 bg-white text-black"
+                className="text-sm px-3 py-1 bg-black text-white"
               >
                 {statusCounts.active} active
               </Badge>
@@ -171,7 +176,7 @@ export default function LinksDashboard() {
               </Badge>
               <Badge
                 variant="secondary"
-                className="text-sm px-3 py-1 bg-black text-white"
+                className="text-sm px-3 py-1 bg-white text-black"
               >
                 {statusCounts.protected} protected
               </Badge>
@@ -278,6 +283,7 @@ export default function LinksDashboard() {
                     }}
                     onQrCode={() => handleQrCode(link)}
                     onDelete={() => handleDelete(link.short_url)}
+                    onEditLink={() => handleEditLink(link)}
                   />
                 ))}
               </div>
@@ -295,6 +301,10 @@ export default function LinksDashboard() {
                     }}
                     onQrCode={() => handleQrCode(link)}
                     onDelete={() => handleDelete(link.short_url)}
+                    onEditLink={() => {
+                      setSelectedLink(link);
+                      setOpen(true);
+                    }}
                   />
                 ))}
               </div>
@@ -320,11 +330,7 @@ export default function LinksDashboard() {
       </div>
 
       {/* Dialogs */}
-      <CreateLinkDialog
-        open={open}
-        onOpenChange={setOpen}
-        onCreateLink={refetch}
-      />
+
       {selectedLink && (
         <LinkPreviewDialog
           isOpen={previewOpen}
@@ -337,6 +343,18 @@ export default function LinksDashboard() {
           open={qrOpen}
           onClose={() => setQrOpen(false)}
           link={qrLink}
+        />
+      )}
+      {selectedLink && (
+        <EditLinkDialog
+          isOpen={editOpen}
+          onClose={() => setEditOpen(false)}
+          shortcode={selectedLink.short_url.split("/").pop() || ""}
+          initialData={{
+            title: selectedLink.title,
+            original_url: selectedLink.original_url,
+          }}
+          onSuccess={() => setEditOpen(false)} // optional refresh behavior
         />
       )}
     </div>

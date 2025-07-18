@@ -27,15 +27,14 @@ type Props = {
   isOpen: boolean;
   onClose: () => void;
   initialData: Partial<EditLinkData>;
-
-  shortCode: string;
+  shortcode: string;
   onSuccess?: (link: LinkData) => void;
 };
 
 export default function EditLinkDialog({
   isOpen,
   initialData,
-  shortCode,
+  shortcode: shortcode,
   onSuccess,
   onClose,
 }: Props) {
@@ -71,7 +70,7 @@ export default function EditLinkDialog({
 
   const onSubmit = async (formData: EditLinkData) => {
     try {
-      const res = await fetch(`/api/protected/edit/${shortCode}`, {
+      const res = await fetch(`/api/protected/edit/${shortcode}`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
