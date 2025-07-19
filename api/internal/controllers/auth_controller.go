@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"time"
 
+	"api/configs"
 	"api/internal/db"
 	"api/internal/oauth"
 	"api/internal/utils"
@@ -112,7 +113,27 @@ func (a *authController) CheckUsername(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(200, gin.H{"available": false})
+	ctx.JSON(200, gin.H{"Username not available": false})
+}
+
+func (a *authController) CheckEmail(ctx *gin.Context) {
+	email := ctx.Query("email")
+	if email == "" {
+		ctx.JSON(400, gin.H{"error": "Email is required"})
+		return
+	}
+
+	_, err := a.store.GetUserByEmail(ctx, email)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			ctx.JSON(200, gin.H{"available": true})
+			return
+		}
+		ctx.JSON(500, gin.H{"error": "Internal server error"})
+		return
+	}
+
+	ctx.JSON(200, gin.H{"Email not available": false})
 }
 
 type LoginRequest struct {
@@ -128,7 +149,6 @@ func (a *authController) Login(ctx *gin.Context) {
 			})
 			return
 		}
-		fmt.Println("Invalid token, continuing login")
 	}
 
 	var req LoginRequest
@@ -296,7 +316,7 @@ func (a *authController) ProviderCallback(ctx *gin.Context) {
 
 	ctx.SetCookie("token", token, 3600*24*10, "", "", false, true)
 
-	redirectURL := "http://localhost:3000/dashboard"
+	redirectURL := configs.GetAPIURL() + "/dashboard"
 	ctx.Redirect(http.StatusFound, redirectURL)
 }
 

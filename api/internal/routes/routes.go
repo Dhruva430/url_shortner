@@ -43,6 +43,7 @@ func SetupRouter(store *db.Queries, conn *sql.DB) *gin.Engine {
 	routerAPI.POST("/login", authController.Login)
 	routerAPI.GET("/logout", authController.Logout)
 	routerAPI.GET("/check-username", authController.CheckUsername)
+	routerAPI.GET("/check-email", authController.CheckEmail)
 
 	routerAPI.GET("/auth/:provider/callback", authController.ProviderCallback)
 	routerAPI.GET("/auth/:provider", authController.ProviderRedirect)

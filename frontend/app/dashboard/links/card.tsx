@@ -225,8 +225,7 @@ export default function EnhancedCard({
               <p className="text-sm text-muted-foreground mt-1 break-all line-clamp-2 leading-relaxed mb-2">
                 {link.original_url}
               </p>
-              <div className="flex gap-2 mb-3">
-                Shinkr -
+              <div className="flex mb-3">
                 <a className="text-sm text-darkBackground truncate my-auto">
                   {link.short_url}
                 </a>

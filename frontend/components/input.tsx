@@ -23,7 +23,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
         ref={ref}
         {...props}
         className={cn(
-          "w-full  px-4 py-3 bg-black rounded-lg border border-gray-300 focus:outline-none focus-within:border-blue-500 transition duration-150 ease-in-out",
+          "w-full  px-4 py-3 bg-white rounded-lg border border-gray-300 focus:outline-none focus-within:border-blue-500 transition duration-150 ease-in-out",
           className
         )}
       />

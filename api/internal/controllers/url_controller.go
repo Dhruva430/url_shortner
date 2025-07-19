@@ -166,19 +166,6 @@ func (c *URLController) RedirectToOriginalURL(ctx *gin.Context) {
 		return
 	}
 
-	if url.PasswordHash.Valid && url.PasswordHash.String != "" {
-		if password == "" {
-
-			ctx.Redirect(http.StatusTemporaryRedirect, "http://localhost:3000/redirect/"+shortcode)
-			return
-		}
-
-		if !utils.CheckPasswordHash(password, url.PasswordHash.String) {
-			ctx.JSON(http.StatusForbidden, gin.H{"error": "Invalid password"})
-			return
-		}
-	}
-
 	ipAddress := utils.GetIP(ctx)
 	userAgent := ctx.Request.UserAgent()
 	referrer := ctx.Request.Referer()
@@ -201,6 +188,19 @@ func (c *URLController) RedirectToOriginalURL(ctx *gin.Context) {
 			City:       sql.NullString{String: city, Valid: city != ""},
 		})
 	}(shortcode, urlID, deviceType, ipAddress, userAgent, referrer)
+
+	if url.PasswordHash.Valid && url.PasswordHash.String != "" {
+		if password == "" {
+
+			ctx.Redirect(http.StatusTemporaryRedirect, "https://uhxnpmnnw4r7.share.zrok.io/redirect/"+shortcode)
+			return
+		}
+
+		if !utils.CheckPasswordHash(password, url.PasswordHash.String) {
+			ctx.JSON(http.StatusForbidden, gin.H{"error": "Invalid password"})
+			return
+		}
+	}
 
 	ctx.Redirect(http.StatusFound, url.OriginalUrl)
 }
