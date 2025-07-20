@@ -82,6 +82,9 @@ func SetupRouter(store *db.Queries, conn *sql.DB) *gin.Engine {
 
 	// protected.GET("/transactions", transactionController.GetUserTransactions)
 
+	protected.GET("/account", transactionController.GetUserAccount)
+	protected.GET("/bills", transactionController.GetUserBills)
+
 	protected.GET("/me", func(ctx *gin.Context) {
 		userID, _ := ctx.Get("user_id")
 		username, _ := ctx.Get("username")

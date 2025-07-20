@@ -23,6 +23,17 @@ SET status = $2,
 WHERE razorpay_order_id = $1;
 
 
+-- name: GetUserAccountDetails :one
+SELECT 
+  id, username, email, ip_address, provider, provider_id, image, created_at, updated_at
+FROM users
+WHERE id = $1
+LIMIT 1;
+
+-- name: GetUserTransactions :many
+SELECT * FROM transactions
+WHERE user_id = $1
+ORDER BY created_at DESC; 
 
 -- name: GetUserTransactionsByStatus :many
 SELECT * FROM transactions
@@ -48,6 +59,7 @@ LIMIT 1;
 SELECT * FROM users
 WHERE username = $1
 LIMIT 1;
+
 
 -- name: DeleteURLByShortCode :exec
 DELETE FROM urls
@@ -79,7 +91,7 @@ SET
 WHERE short_code = $5
 RETURNING *;
 
--- name: GetUserByProvider :one
+-- name: GetUserByProviderID :one
 SELECT * FROM users
 WHERE provider = $1 AND provider_id = $2
 LIMIT 1;
@@ -99,10 +111,6 @@ INSERT INTO urls (
 )
 RETURNING *;
 
--- name: GetUserByProviderID :one
-SELECT * FROM users
-WHERE provider = $1 AND provider_id = $2
-LIMIT 1;
 
 -- name: LogURLVisit :exec
 INSERT INTO url_visits (

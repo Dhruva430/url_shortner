@@ -31,10 +31,15 @@ type Querier interface {
 	GetTitleAndUrlByUser(ctx context.Context, userID sql.NullInt32) ([]GetTitleAndUrlByUserRow, error)
 	GetURLVisits(ctx context.Context, urlID int32) ([]UrlVisit, error)
 	GetUrlsByUserID(ctx context.Context, userID sql.NullInt32) ([]Url, error)
+	// -- name: GetUserTransactions :many
+	// SELECT * FROM transactions
+	// WHERE user_id = $1
+	// ORDER BY created_at DESC;
+	GetUserAccountDetails(ctx context.Context, id int32) (GetUserAccountDetailsRow, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
-	GetUserByProvider(ctx context.Context, arg GetUserByProviderParams) (User, error)
 	GetUserByProviderID(ctx context.Context, arg GetUserByProviderIDParams) (User, error)
 	GetUserByUsername(ctx context.Context, username string) (User, error)
+	GetUserTransactions(ctx context.Context, userID int32) ([]Transaction, error)
 	GetUserTransactionsByStatus(ctx context.Context, arg GetUserTransactionsByStatusParams) ([]Transaction, error)
 	IncrementClickCount(ctx context.Context, shortCode string) error
 	LogURLVisit(ctx context.Context, arg LogURLVisitParams) error

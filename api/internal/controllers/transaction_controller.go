@@ -268,3 +268,44 @@ func (t *TransactionController) CheckPremiumStatus(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, gin.H{"isPremium": isPremium})
 }
+
+func (t *TransactionController) GetUserAccount(ctx *gin.Context) {
+	userIDVal, exists := ctx.Get("user_id")
+	if !exists {
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+	userID, ok := userIDVal.(int64)
+	if !ok {
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid user_id"})
+		return
+	}
+
+	accountDetails, err := t.store.GetUserAccountDetails(ctx, int32(userID))
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "could not fetch account details"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, accountDetails)
+}
+
+func (t *TransactionController) GetUserBills(ctx *gin.Context) {
+	userIDVal, exists := ctx.Get("user_id")
+	if !exists {
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+	userID, ok := userIDVal.(int64)
+	if !ok {
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid user_id"})
+		return
+	}
+	
+	bills, err := t.store.GetUserTransactions(ctx, int32(userID))
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "could not fetch bills"})
+		return
+	}
+	ctx.JSON(http.StatusOK, bills)
+}

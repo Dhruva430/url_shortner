@@ -880,20 +880,38 @@ func (q *Queries) GetUrlsByUserID(ctx context.Context, userID sql.NullInt32) ([]
 	return items, nil
 }
 
-const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, username, email, password_hash, ip_address, provider, provider_id, image, created_at, updated_at FROM users
-WHERE email = $1
+const getUserAccountDetails = `-- name: GetUserAccountDetails :one
+
+SELECT 
+  id, username, email, ip_address, provider, provider_id, image, created_at, updated_at
+FROM users
+WHERE id = $1
 LIMIT 1
 `
 
-func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
-	row := q.db.QueryRowContext(ctx, getUserByEmail, email)
-	var i User
+type GetUserAccountDetailsRow struct {
+	ID         int32          `json:"id"`
+	Username   string         `json:"username"`
+	Email      string         `json:"email"`
+	IpAddress  sql.NullString `json:"ip_address"`
+	Provider   sql.NullString `json:"provider"`
+	ProviderID sql.NullString `json:"provider_id"`
+	Image      sql.NullString `json:"image"`
+	CreatedAt  sql.NullTime   `json:"created_at"`
+	UpdatedAt  sql.NullTime   `json:"updated_at"`
+}
+
+// -- name: GetUserTransactions :many
+// SELECT * FROM transactions
+// WHERE user_id = $1
+// ORDER BY created_at DESC;
+func (q *Queries) GetUserAccountDetails(ctx context.Context, id int32) (GetUserAccountDetailsRow, error) {
+	row := q.db.QueryRowContext(ctx, getUserAccountDetails, id)
+	var i GetUserAccountDetailsRow
 	err := row.Scan(
 		&i.ID,
 		&i.Username,
 		&i.Email,
-		&i.PasswordHash,
 		&i.IpAddress,
 		&i.Provider,
 		&i.ProviderID,
@@ -904,19 +922,14 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 	return i, err
 }
 
-const getUserByProvider = `-- name: GetUserByProvider :one
+const getUserByEmail = `-- name: GetUserByEmail :one
 SELECT id, username, email, password_hash, ip_address, provider, provider_id, image, created_at, updated_at FROM users
-WHERE provider = $1 AND provider_id = $2
+WHERE email = $1
 LIMIT 1
 `
 
-type GetUserByProviderParams struct {
-	Provider   sql.NullString `json:"provider"`
-	ProviderID sql.NullString `json:"provider_id"`
-}
-
-func (q *Queries) GetUserByProvider(ctx context.Context, arg GetUserByProviderParams) (User, error) {
-	row := q.db.QueryRowContext(ctx, getUserByProvider, arg.Provider, arg.ProviderID)
+func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
+	row := q.db.QueryRowContext(ctx, getUserByEmail, email)
 	var i User
 	err := row.Scan(
 		&i.ID,
@@ -984,6 +997,45 @@ func (q *Queries) GetUserByUsername(ctx context.Context, username string) (User,
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const getUserTransactions = `-- name: GetUserTransactions :many
+SELECT id, user_id, razorpay_order_id, razorpay_payment_id, amount, currency, plan, status, created_at FROM transactions
+WHERE user_id = $1
+ORDER BY created_at DESC
+`
+
+func (q *Queries) GetUserTransactions(ctx context.Context, userID int32) ([]Transaction, error) {
+	rows, err := q.db.QueryContext(ctx, getUserTransactions, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Transaction
+	for rows.Next() {
+		var i Transaction
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.RazorpayOrderID,
+			&i.RazorpayPaymentID,
+			&i.Amount,
+			&i.Currency,
+			&i.Plan,
+			&i.Status,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getUserTransactionsByStatus = `-- name: GetUserTransactionsByStatus :many

@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import clsx from "clsx";
 import { useRouter, usePathname } from "next/navigation";
+import Link from "next/link";
 
 export default function AppSidebar() {
   const router = useRouter();
@@ -72,11 +73,6 @@ export default function AppSidebar() {
       href: "/dashboard/qr_code",
       icon: <QrCode className="size-5" />,
       label: "QR Codes",
-    },
-    {
-      href: "/settings",
-      icon: <Settings className="size-5" />,
-      label: "Settings",
     },
   ];
 
@@ -130,8 +126,12 @@ export default function AppSidebar() {
                 side="top"
                 className="w-[--radix-popper-anchor-width]"
               >
-                <DropdownMenuItem>Account</DropdownMenuItem>
-                <DropdownMenuItem>Billing</DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/dashboard/account">Account</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/dashboard/billings">Billing</Link>
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleLogout}>
                   Sign out
                 </DropdownMenuItem>
