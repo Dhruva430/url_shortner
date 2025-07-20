@@ -84,14 +84,14 @@ export default function LoginForm() {
               type: "manual",
               message: "User not found. Please register first.",
             });
-            showNotification("User not found. Please register first.", "error");
+            showNotification(result.error, "error");
             break;
           case 401:
             setError("password", {
               type: "manual",
               message: "Incorrect password",
             });
-            showNotification("Incorrect password. Please try again.", "error");
+            showNotification(result.error, "error");
             break;
           case 400:
             if (result.message?.includes("email")) {
@@ -99,7 +99,7 @@ export default function LoginForm() {
                 type: "manual",
                 message: "Invalid email format",
               });
-              showNotification("Please enter a valid email address.", "error");
+              showNotification(result.error, "error");
             } else {
               showNotification(
                 result.message || "Invalid credentials",

@@ -12,6 +12,7 @@ import (
 type Querier interface {
 	CreateOAuthUser(ctx context.Context, arg CreateOAuthUserParams) (User, error)
 	CreateShortURL(ctx context.Context, arg CreateShortURLParams) (Url, error)
+	CreateTransaction(ctx context.Context, arg CreateTransactionParams) (Transaction, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	DeleteURLByShortCode(ctx context.Context, shortCode string) error
 	GetAnalyticsShortcode(ctx context.Context, shortCode string) ([]GetAnalyticsShortcodeRow, error)
@@ -34,9 +35,11 @@ type Querier interface {
 	GetUserByProvider(ctx context.Context, arg GetUserByProviderParams) (User, error)
 	GetUserByProviderID(ctx context.Context, arg GetUserByProviderIDParams) (User, error)
 	GetUserByUsername(ctx context.Context, username string) (User, error)
+	GetUserTransactionsByStatus(ctx context.Context, arg GetUserTransactionsByStatusParams) ([]Transaction, error)
 	IncrementClickCount(ctx context.Context, shortCode string) error
 	LogURLVisit(ctx context.Context, arg LogURLVisitParams) error
 	UpdateShortURL(ctx context.Context, arg UpdateShortURLParams) (Url, error)
+	UpdateTransactionPayment(ctx context.Context, arg UpdateTransactionPaymentParams) error
 }
 
 var _ Querier = (*Queries)(nil)

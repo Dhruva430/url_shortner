@@ -7,7 +7,6 @@ import (
 	"api/internal/db"
 	"api/internal/errors"
 	"api/internal/middleware"
-	"api/internal/transaction"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -35,6 +34,7 @@ func SetupRouter(store *db.Queries, conn *sql.DB) *gin.Engine {
 	authController := controllers.NewAuthController(store, conn)
 	URLController := controllers.NewURLController(store)
 	titleController := controllers.NewTitleController()
+	transactionController := controllers.NewTransactionController(store, conn)
 	router := r.Group("/")
 
 	routerAPI := router.Group("/api")
@@ -66,15 +66,21 @@ func SetupRouter(store *db.Queries, conn *sql.DB) *gin.Engine {
 	protected.GET("/analytics/bar", URLController.GetMonthlyClicks)
 	protected.GET("/analytics/worldmap", URLController.GetWorldMapData)
 
-	protected.GET("/analytics/piechart/:shortcode", URLController.GetPieChartDataByShorcode)
-	protected.GET("/analytics/linechart/:shortcode", URLController.LineChartStatsByShortcode)
-	protected.GET("/analytics/worldchart/:shortcode", URLController.GetWorldMapStatsByShortcode)
-	protected.GET("/analytics/barchart/:shortcode", URLController.GetBarChartStatsByShortcode)
+	premiumOnly := middleware.PremiumOnly(transactionController)
 
-	protected.POST("/payment/createorder", transaction.CreateOrderHandler)
+	protected.GET("/analytics/piechart/:shortcode", premiumOnly, URLController.GetPieChartDataByShorcode)
+	protected.GET("/analytics/linechart/:shortcode", premiumOnly, URLController.LineChartStatsByShortcode)
+	protected.GET("/analytics/worldchart/:shortcode", premiumOnly, URLController.GetWorldMapStatsByShortcode)
+	protected.GET("/analytics/barchart/:shortcode", premiumOnly, URLController.GetBarChartStatsByShortcode)
 
 	protected.POST("/shorten", URLController.CreateShortURL)
 	protected.POST("edit/:shortcode", URLController.UpdateShortURL)
+
+	protected.GET("/premium", transactionController.CheckPremiumStatus)
+	routerAPI.POST("/razorpay/webhook", transactionController.RazorpayWebhook)
+	protected.POST("/createorder", transactionController.CreateRazorpayOrder)
+
+	// protected.GET("/transactions", transactionController.GetUserTransactions)
 
 	protected.GET("/me", func(ctx *gin.Context) {
 		userID, _ := ctx.Get("user_id")

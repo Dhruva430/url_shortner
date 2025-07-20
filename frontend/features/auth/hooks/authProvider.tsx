@@ -30,7 +30,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   } = useQuery<User>({
     queryKey: ["auth", "me"],
     queryFn: fetchMe,
-    retry: false, // Avoid retrying on auth error
+    retry: false,
   });
 
   const isAuthenticated = !isLoading && !isError && !!user;

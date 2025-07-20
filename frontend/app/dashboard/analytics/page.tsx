@@ -11,7 +11,14 @@ import {
   useAnalyticsContext,
 } from "@/contexts/analyticsContext";
 import { useQuery } from "@tanstack/react-query";
-import { BarChart3, Globe, Smartphone, TrendingUp, Link } from "lucide-react";
+import {
+  BarChart3,
+  Globe,
+  Smartphone,
+  TrendingUp,
+  Link,
+  Lock,
+} from "lucide-react";
 import {
   Card,
   CardContent,
@@ -19,6 +26,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { usePremium } from "@/features/auth/hooks/premiumProvider";
 
 type Options = {
   id: string;
@@ -36,6 +44,7 @@ export default function AnalyticsPage() {
 
 function AnalyticsContent() {
   const { selectedShortcode, setSelectedShortcode } = useAnalyticsContext();
+  const { isPremium, isLoading: isPremiumLoading } = usePremium();
 
   const lineChartFetchURL = `/api/protected/analytics/linechart/${selectedShortcode}`;
   const barChartFetchURL = `/api/protected/analytics/barchart/${selectedShortcode}`;
@@ -55,12 +64,34 @@ function AnalyticsContent() {
       if (!res.ok) throw new Error(`Error ${res.status}`);
       return res.json();
     },
+    enabled: isPremium,
   });
 
   const handleSelect = (option: Options) => {
     setSelectedShortcode(option.shortcode);
   };
 
+  if (isPremiumLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-slate-600 text-lg">Checking premium status...</p>
+      </div>
+    );
+  }
+  if (!isPremium) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
+        <Card className="p-6 bg-white border shadow-xl max-w-lg text-center">
+          <Lock className="w-10 h-10 text-red-500 mx-auto mb-4" />
+          <CardTitle className="text-2xl mb-2">Analytics Locked</CardTitle>
+          <CardDescription className="text-slate-600 mb-4">
+            Analytics is a premium feature. Upgrade to access detailed insights
+            about your links.
+          </CardDescription>
+        </Card>
+      </div>
+    );
+  }
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       <div className="container mx-auto px-4 py-8 max-w-7xl">

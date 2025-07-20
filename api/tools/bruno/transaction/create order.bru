@@ -1,0 +1,25 @@
+meta {
+  name: create order
+  type: http
+  seq: 1
+}
+
+post {
+  url: https://api.razorpay.com/v1/orders
+  body: json
+  auth: basic
+}
+
+auth:basic {
+  username: rzp_test_rQPuaBeJ1xvnm8
+  password: 7DsomdJURmkpVPwcvoUyBbHB
+}
+
+body:json {
+  {
+    "amount": 8900,
+    "currency": "INR",
+    "receipt": "abcd@123",
+    "notes":{"user_id": 1}
+  }
+}

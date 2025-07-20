@@ -48,3 +48,14 @@ CREATE TABLE IF NOT EXISTS qr_codes (
     expire_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
+CREATE TABLE transactions (
+    id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL,
+    razorpay_order_id TEXT NOT NULL,
+    razorpay_payment_id TEXT,
+    amount BIGINT NOT NULL,
+    currency TEXT NOT NULL,
+    plan TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'created',
+    created_at TIMESTAMP DEFAULT now()
+);

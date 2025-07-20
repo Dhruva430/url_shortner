@@ -9,6 +9,26 @@ UPDATE urls
 SET click_count = click_count + 1
 WHERE short_code = $1;
 
+-- name: CreateTransaction :one
+INSERT INTO transactions (
+  user_id, razorpay_order_id, amount, currency, plan, status
+) VALUES (
+  $1, $2, $3, $4, $5, $6
+) RETURNING *;
+
+-- name: UpdateTransactionPayment :exec
+UPDATE transactions
+SET status = $2,
+    razorpay_payment_id = $3
+WHERE razorpay_order_id = $1;
+
+
+
+-- name: GetUserTransactionsByStatus :many
+SELECT * FROM transactions
+WHERE user_id = $1 AND status = $2
+ORDER BY created_at DESC;
+
 -- name: CreateUser :one
 INSERT INTO users (username, email, password_hash, ip_address)
 VALUES ($1, $2, $3, $4)

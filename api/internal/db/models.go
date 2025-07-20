@@ -18,6 +18,18 @@ type QrCode struct {
 	CreatedAt sql.NullTime   `json:"created_at"`
 }
 
+type Transaction struct {
+	ID                int32          `json:"id"`
+	UserID            int32          `json:"user_id"`
+	RazorpayOrderID   string         `json:"razorpay_order_id"`
+	RazorpayPaymentID sql.NullString `json:"razorpay_payment_id"`
+	Amount            int64          `json:"amount"`
+	Currency          string         `json:"currency"`
+	Plan              string         `json:"plan"`
+	Status            string         `json:"status"`
+	CreatedAt         sql.NullTime   `json:"created_at"`
+}
+
 type Url struct {
 	ID           int32          `json:"id"`
 	OriginalUrl  string         `json:"original_url"`

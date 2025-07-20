@@ -89,7 +89,7 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
               type: "manual",
               message: "Incorrect password",
             });
-            showNotification("Incorrect password. Please try again.", "error");
+            showNotification(result.error, "error");
             break;
           case 400:
             if (result.message?.includes("email")) {
@@ -97,7 +97,7 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
                 type: "manual",
                 message: "Invalid email format",
               });
-              showNotification("Please enter a valid email address.", "error");
+              showNotification(result.error, "error");
             } else {
               showNotification(
                 result.message || "Invalid credentials",
@@ -106,7 +106,7 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
             }
             break;
           default:
-            showNotification("Login failed. Please try again.", "error");
+            showNotification(result.error, "error");
         }
       }
 
@@ -114,7 +114,7 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
       Router.push("/login");
       setTimeout(() => {
         onSuccess?.();
-      }, 1500);
+      }, 3000);
     } catch {
       showNotification("Something went wrong. Please try again.", "error");
     }

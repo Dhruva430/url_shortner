@@ -1,12 +1,17 @@
 package models
 
-type RazorpayOrderRequest struct {
-	Amount   int    `json:"amount"`
-	Currency string `json:"currency"`
-	Receipt  string `json:"receipt"`
+type RazorpayOrderResponse struct {
+	ID            string         `json:"id"`
+	Amount        int64          `json:"amount"`
+	Currency      string         `json:"currency"`
+	Notes         map[string]any `json:"notes"`
+	RazorpayKeyID string         `json:"razorpay_key_id"`
 }
 
-type RazorpayOrderResponse struct {
-	ID     string `json:"id"`
-	Status string `json:"status"`
+type Subscriptions struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Amount      int64  `json:"amount"`
+	Interval    string `json:"interval"`
+	Currency    string `json:"currency"`
 }

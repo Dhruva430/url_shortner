@@ -3,7 +3,7 @@ import { Exo } from "next/font/google";
 import "./globals.css";
 import QueryProvider from "./providers/queryProvider";
 import { AuthProvider } from "@/features/auth/hooks/authProvider";
-
+import { PremiumProvider } from "@/features/auth/hooks/premiumProvider";
 const exo = Exo({
   variable: "--font-exo",
   subsets: ["latin"],
@@ -24,7 +24,9 @@ export default function RootLayout({
     <html lang="en" className={exo.variable}>
       <body className="bg-background text-foreground antialiased">
         <QueryProvider>
-          <AuthProvider>{children}</AuthProvider>
+          <AuthProvider>
+            <PremiumProvider>{children}</PremiumProvider>
+          </AuthProvider>
         </QueryProvider>
       </body>
     </html>

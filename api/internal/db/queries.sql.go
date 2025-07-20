@@ -105,6 +105,47 @@ func (q *Queries) CreateShortURL(ctx context.Context, arg CreateShortURLParams) 
 	return i, err
 }
 
+const createTransaction = `-- name: CreateTransaction :one
+INSERT INTO transactions (
+  user_id, razorpay_order_id, amount, currency, plan, status
+) VALUES (
+  $1, $2, $3, $4, $5, $6
+) RETURNING id, user_id, razorpay_order_id, razorpay_payment_id, amount, currency, plan, status, created_at
+`
+
+type CreateTransactionParams struct {
+	UserID          int32  `json:"user_id"`
+	RazorpayOrderID string `json:"razorpay_order_id"`
+	Amount          int64  `json:"amount"`
+	Currency        string `json:"currency"`
+	Plan            string `json:"plan"`
+	Status          string `json:"status"`
+}
+
+func (q *Queries) CreateTransaction(ctx context.Context, arg CreateTransactionParams) (Transaction, error) {
+	row := q.db.QueryRowContext(ctx, createTransaction,
+		arg.UserID,
+		arg.RazorpayOrderID,
+		arg.Amount,
+		arg.Currency,
+		arg.Plan,
+		arg.Status,
+	)
+	var i Transaction
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.RazorpayOrderID,
+		&i.RazorpayPaymentID,
+		&i.Amount,
+		&i.Currency,
+		&i.Plan,
+		&i.Status,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (username, email, password_hash, ip_address)
 VALUES ($1, $2, $3, $4)
@@ -945,6 +986,50 @@ func (q *Queries) GetUserByUsername(ctx context.Context, username string) (User,
 	return i, err
 }
 
+const getUserTransactionsByStatus = `-- name: GetUserTransactionsByStatus :many
+SELECT id, user_id, razorpay_order_id, razorpay_payment_id, amount, currency, plan, status, created_at FROM transactions
+WHERE user_id = $1 AND status = $2
+ORDER BY created_at DESC
+`
+
+type GetUserTransactionsByStatusParams struct {
+	UserID int32  `json:"user_id"`
+	Status string `json:"status"`
+}
+
+func (q *Queries) GetUserTransactionsByStatus(ctx context.Context, arg GetUserTransactionsByStatusParams) ([]Transaction, error) {
+	rows, err := q.db.QueryContext(ctx, getUserTransactionsByStatus, arg.UserID, arg.Status)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Transaction
+	for rows.Next() {
+		var i Transaction
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.RazorpayOrderID,
+			&i.RazorpayPaymentID,
+			&i.Amount,
+			&i.Currency,
+			&i.Plan,
+			&i.Status,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const incrementClickCount = `-- name: IncrementClickCount :exec
 UPDATE urls
 SET click_count = click_count + 1
@@ -1040,4 +1125,22 @@ func (q *Queries) UpdateShortURL(ctx context.Context, arg UpdateShortURLParams) 
 		&i.UserID,
 	)
 	return i, err
+}
+
+const updateTransactionPayment = `-- name: UpdateTransactionPayment :exec
+UPDATE transactions
+SET status = $2,
+    razorpay_payment_id = $3
+WHERE razorpay_order_id = $1
+`
+
+type UpdateTransactionPaymentParams struct {
+	RazorpayOrderID   string         `json:"razorpay_order_id"`
+	Status            string         `json:"status"`
+	RazorpayPaymentID sql.NullString `json:"razorpay_payment_id"`
+}
+
+func (q *Queries) UpdateTransactionPayment(ctx context.Context, arg UpdateTransactionPaymentParams) error {
+	_, err := q.db.ExecContext(ctx, updateTransactionPayment, arg.RazorpayOrderID, arg.Status, arg.RazorpayPaymentID)
+	return err
 }

@@ -29,3 +29,7 @@ func GetRazorpayKeyID() string {
 func GetRazorpayKeySecret() string {
 	return os.Getenv("RAZORPAY_KEY_SECRET")
 }
+
+func GetRazorpayWebhookSecret() string {
+	return os.Getenv("RAZORPAY_WEBHOOK_SECRET")
+}
