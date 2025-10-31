@@ -31,10 +31,6 @@ type Querier interface {
 	GetTitleAndUrlByUser(ctx context.Context, userID sql.NullInt32) ([]GetTitleAndUrlByUserRow, error)
 	GetURLVisits(ctx context.Context, urlID int32) ([]UrlVisit, error)
 	GetUrlsByUserID(ctx context.Context, userID sql.NullInt32) ([]Url, error)
-	// -- name: GetUserTransactions :many
-	// SELECT * FROM transactions
-	// WHERE user_id = $1
-	// ORDER BY created_at DESC;
 	GetUserAccountDetails(ctx context.Context, id int32) (GetUserAccountDetailsRow, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByProviderID(ctx context.Context, arg GetUserByProviderIDParams) (User, error)

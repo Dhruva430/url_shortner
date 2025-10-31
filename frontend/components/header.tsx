@@ -2,7 +2,7 @@
 
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { CrownIcon, Plus } from "lucide-react";
 import React, { useState, useMemo } from "react";
 import CreateLinkDialog from "@/components/createLinkDialog";
 import { useLinks } from "@/features/links/hooks/useLinks";
@@ -22,6 +22,9 @@ export default function Header() {
     return "Dashboard";
   }, [pathname]);
 
+  const handleUpgradeClick = () => {
+    window.location.href = "/subscriptions";
+  };
   return (
     <>
       <header className="sticky top-0 w-full z-10 flex h-16 items-center justify-between border-b bg-white px-6 shadow-sm">
@@ -40,6 +43,12 @@ export default function Header() {
             <Plus className="w-5 h-5" />
             Create New Link
           </Button>
+          <div className="absolute right-50 top-0">
+            <Button variant={"upgrade"} onClick={handleUpgradeClick}>
+              <CrownIcon className="w-5 h-5" />
+              Upgrade to Premium
+            </Button>
+          </div>
         </div>
       </header>
       <CreateLinkDialog

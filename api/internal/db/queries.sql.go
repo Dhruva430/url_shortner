@@ -881,7 +881,6 @@ func (q *Queries) GetUrlsByUserID(ctx context.Context, userID sql.NullInt32) ([]
 }
 
 const getUserAccountDetails = `-- name: GetUserAccountDetails :one
-
 SELECT 
   id, username, email, ip_address, provider, provider_id, image, created_at, updated_at
 FROM users
@@ -901,10 +900,6 @@ type GetUserAccountDetailsRow struct {
 	UpdatedAt  sql.NullTime   `json:"updated_at"`
 }
 
-// -- name: GetUserTransactions :many
-// SELECT * FROM transactions
-// WHERE user_id = $1
-// ORDER BY created_at DESC;
 func (q *Queries) GetUserAccountDetails(ctx context.Context, id int32) (GetUserAccountDetailsRow, error) {
 	row := q.db.QueryRowContext(ctx, getUserAccountDetails, id)
 	var i GetUserAccountDetailsRow

@@ -72,46 +72,37 @@ export default function Dashboard() {
 
   return (
     <>
-      <div className="flex justify-end">
-        <button
-          onClick={() => setShowPay(true)}
-          className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 transition"
-        >
-          <CreditCard className="h-4 w-4" />
-          Add Credits / Pay
-        </button>
-      </div>
       <div className="min-h-screen bg-gray-100 px-6 py-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mx-auto md:max-w-7xl">
           <KPICard
             title="Total Clicks"
             value={stats?.total_clicks ? formatNumber(stats.total_clicks) : "-"}
-            change="+12.5%"
+            titleColor="text-green-500"
+            iconColor="text-green-500"
             icon={<MousePointer className="w-5 h-5" />}
-            trend="up"
           />
           <KPICard
             title="Total Links"
             value={stats?.total_links ? formatNumber(stats.total_links) : "-"}
-            change="+8.2%"
             icon={<Link className="w-5 h-5" />}
-            trend="up"
+            titleColor="text-green-500"
+            iconColor="text-green-500"
           />
           <KPICard
             title="Active Links"
             value={stats?.active_links ? formatNumber(stats.active_links) : "-"}
-            change="+15.3%"
             icon={<Eye className="w-5 h-5" />}
-            trend="up"
+            titleColor="text-green-500"
+            iconColor="text-green-500"
           />
           <KPICard
             title="Expired Links"
             value={
               stats?.expired_links ? formatNumber(stats.expired_links) : "-"
             }
-            change="-2.1%"
             icon={<Calendar className="w-5 h-5" />}
-            trend="down"
+            titleColor="text-red-500"
+            iconColor="text-red-500"
           />
         </div>
 
@@ -193,45 +184,29 @@ export default function Dashboard() {
 function KPICard({
   title,
   value,
-  change,
   icon,
-  trend,
+  titleColor: titleColor,
+  iconColor,
 }: {
   title: string;
   value: string;
-  change: string;
   icon: React.ReactNode;
-  trend: "up" | "down";
+  titleColor?: string;
+  iconColor?: string;
 }) {
   return (
-    <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-      <CardContent className="p-6">
+    <Card
+      className={`border-0 shadow-lg  backdrop-blur-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1`}
+    >
+      <CardContent className="p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div
-              className={`p-2 rounded-lg ${
-                trend === "up"
-                  ? "bg-green-100 text-green-600"
-                  : "bg-red-100 text-red-600"
-              }`}
-            >
-              {icon}
-            </div>
+            <div className={`p-2 rounded-lg ${iconColor}`}>{icon}</div>
             <div>
-              <p className="text-sm font-medium text-slate-600">{title}</p>
+              <p className={`text-lg ${titleColor} font-medium`}>{title}</p>
               <p className="text-2xl font-bold text-slate-900">{value}</p>
             </div>
           </div>
-        </div>
-        <div className="mt-4 flex items-center gap-2">
-          <span
-            className={`text-sm font-medium ${
-              trend === "up" ? "text-green-600" : "text-red-600"
-            }`}
-          >
-            {change}
-          </span>
-          <span className="text-sm text-slate-500">vs last period</span>
         </div>
       </CardContent>
     </Card>
