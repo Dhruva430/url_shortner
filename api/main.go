@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"os"
 
 	"api/configs"
 	"api/internal/db"
@@ -24,6 +25,10 @@ func startServer(r *gin.Engine) {
 }
 
 func loadEnvVariables() error {
+	if _, err := os.Stat(".env"); os.IsNotExist(err) {
+		return nil
+	}
+
 	err := godotenv.Load(".env")
 	if err != nil {
 		return fmt.Errorf("error loading .env file: %w", err)
