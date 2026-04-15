@@ -1,34 +1,36 @@
 services:
   frontend:
     build:
-      context: ../frontend
+      context: ./frontend
       dockerfile: Dockerfile
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
     restart: unless-stopped
     ports:
       - "3000:3000"
+    env_file:
+      - ./frontend/.env
     environment:
       - NODE_ENV=production
-      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+    #   - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
     depends_on:
       api:
         condition: service_started
 
   api:
     build:
-      context: ./
+      context: ./api
       dockerfile: Dockerfile
       target: prod
     restart: unless-stopped
     ports:
       - "8080:8080"
     env_file:
-      - ./.env
+      - ./api/.env
     environment:
       - ENV=production
-      - PORT=8080
-      - DB_SOURCE=${DB_SOURCE}
+    #   - PORT=8080
+    #   - DB_SOURCE=${DB_SOURCE}
     depends_on:
       postgres:
         condition: service_healthy
@@ -36,10 +38,12 @@ services:
   postgres:
     image: postgres:15
     restart: unless-stopped
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+    # environment:
+    #   POSTGRES_USER: ${POSTGRES_USER}
+    #   POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    #   POSTGRES_DB: ${POSTGRES_DB}
+    env_file:
+      - ./api/.env
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
