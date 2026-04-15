@@ -16,9 +16,9 @@ import (
 )
 
 func startServer(r *gin.Engine) {
-	fmt.Println("Server started successfully http://localhost:8080")
+	fmt.Println("Server started successfully http://localhost:" + configs.GetPort())
 
-	if err := r.Run(":8080"); err != nil {
+	if err := r.Run(":" + configs.GetPort()); err != nil {
 		fmt.Println("Error starting server")
 	}
 }

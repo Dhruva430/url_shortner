@@ -33,3 +33,11 @@ func GetRazorpayKeySecret() string {
 func GetRazorpayWebhookSecret() string {
 	return os.Getenv("RAZORPAY_WEBHOOK_SECRET")
 }
+
+func GetPort() string {
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080" // Default port if not specified
+	}
+	return port
+}
