@@ -24,7 +24,7 @@ func SetupRouter(store *db.Queries, conn *sql.DB) *gin.Engine {
 	})
 
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:3000", "https://uhxnpmnnw4r7.share.zrok.io"},
+		AllowOrigins:     []string{"http://localhost:3000", "https://dhruvakushwaha.in"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length", "Content-Disposition"},

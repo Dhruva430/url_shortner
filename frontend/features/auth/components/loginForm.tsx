@@ -9,6 +9,7 @@ import { useForm, type FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import SlideNotification from "@/app/login/slide-notification";
+import { useQueryClient } from "@tanstack/react-query";
 
 const loginSchema = z.object({
   identifier: z.string().min(2, "Email/Username is required"),
@@ -25,6 +26,7 @@ interface NotificationState {
 
 export default function LoginForm() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [notification, setNotification] = useState<NotificationState>({
     message: "",
     type: "success",
@@ -44,7 +46,7 @@ export default function LoginForm() {
 
   const showNotification = (
     message: string,
-    type: "success" | "error" | "warning"
+    type: "success" | "error" | "warning",
   ) => {
     setNotification({
       message,
@@ -103,7 +105,7 @@ export default function LoginForm() {
             } else {
               showNotification(
                 result.message || "Invalid credentials",
-                "error"
+                "error",
               );
             }
             break;
@@ -115,10 +117,13 @@ export default function LoginForm() {
 
       // Success
       showNotification("Login successful! Redirecting...", "success");
+      await queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
+      await queryClient.refetchQueries({
+        queryKey: ["auth", "me"],
+        type: "active",
+      });
 
-      setTimeout(() => {
-        router.push("/dashboard");
-      }, 1500);
+      router.replace("/dashboard");
     } catch (error) {
       console.error("Error:", error);
       showNotification("Network error. Please check your connection.", "error");

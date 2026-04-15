@@ -31,9 +31,11 @@ import {
 import clsx from "clsx";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function AppSidebar() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const pathname = usePathname();
   const handleLogout = async () => {
     try {
@@ -41,7 +43,12 @@ export default function AppSidebar() {
         method: "GET",
         credentials: "include",
       });
-      router.push("/login");
+
+      // Clear cached auth so route guards don't treat user as logged in.
+      queryClient.removeQueries({ queryKey: ["auth", "me"] });
+
+      router.replace("/login");
+      router.refresh();
     } catch (error) {
       console.error("Logout failed:", error);
     }

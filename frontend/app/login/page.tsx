@@ -9,9 +9,18 @@ import Image from "next/image";
 import StarIcon from "@/assets/star.svg";
 import LoginForm from "@/features/auth/components/loginForm";
 import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+import { useAuth } from "@/features/auth/hooks/authProvider";
 
 export default function Login() {
   const router = useRouter();
+  const { isLoading, isAuthenticated } = useAuth();
+
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      router.replace("/dashboard");
+    }
+  }, [isLoading, isAuthenticated, router]);
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row text-white bg-blackShade">

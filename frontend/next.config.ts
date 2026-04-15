@@ -17,7 +17,7 @@ const nextConfig: NextConfig = {
         issuer: fileLoaderRule.issuer,
         resourceQuery: { not: [...fileLoaderRule.resourceQuery.not, /url/] },
         use: ["@svgr/webpack"],
-      }
+      },
     );
 
     fileLoaderRule.exclude = /\.svg$/i;
@@ -34,16 +34,16 @@ const nextConfig: NextConfig = {
     },
   },
 
-    async rewrites() {
+  async rewrites() {
     return [
       {
         source: "/api/:path*",
-        destination: "http://localhost:8080/api/:path*", // this tells Next.js to proxy to Go backend
+        destination: "https://dhruvakushwaha.in/api/:path*", // this tells Next.js to proxy to Go backend
       },
       {
         source: "/s/:path*",
-        destination: "http://localhost:8080/s/:path*", // proxy to protected routes
-      }
+        destination: "https://dhruvakushwaha.in/s/:path*", // proxy to protected routes
+      },
     ];
   },
 };

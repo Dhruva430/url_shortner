@@ -31,6 +31,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     queryKey: ["auth", "me"],
     queryFn: fetchMe,
     retry: false,
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
   });
 
   const isAuthenticated = !isLoading && !isError && !!user;

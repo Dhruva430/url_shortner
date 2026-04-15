@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"api/configs"
@@ -23,6 +24,25 @@ type authController struct {
 
 func NewAuthController(store *db.Queries, dbConn *sql.DB) *authController {
 	return &authController{store: store, db: dbConn}
+}
+
+func shouldUseSecureCookie(ctx *gin.Context) bool {
+	if ctx.Request.TLS != nil {
+		return true
+	}
+
+	return strings.EqualFold(ctx.GetHeader("X-Forwarded-Proto"), "https")
+}
+
+func setAuthCookie(ctx *gin.Context, token string, maxAge int) {
+	secure := shouldUseSecureCookie(ctx)
+	if secure {
+		ctx.SetSameSite(http.SameSiteNoneMode)
+	} else {
+		ctx.SetSameSite(http.SameSiteLaxMode)
+	}
+
+	ctx.SetCookie("token", token, maxAge, "/", "", secure, true)
 }
 
 type RegisterRequest struct {
@@ -199,7 +219,7 @@ func (a *authController) Login(ctx *gin.Context) {
 		ctx.JSON(500, gin.H{"error": "Failed to commit transaction"})
 		return
 	}
-	ctx.SetCookie("token", token, 3600*24*10, "", "", false, true) // 10 days
+	setAuthCookie(ctx, token, 3600*24*10) // 10 days
 
 	ctx.JSON(200, gin.H{
 		"message": "Login successful",
@@ -314,7 +334,7 @@ func (a *authController) ProviderCallback(ctx *gin.Context) {
 		return
 	}
 
-	ctx.SetCookie("token", token, 3600*24*10, "", "", false, true)
+	setAuthCookie(ctx, token, 3600*24*10)
 
 	redirectURL := configs.GetAPIURL() + "/dashboard"
 	ctx.Redirect(http.StatusFound, redirectURL)
@@ -326,6 +346,6 @@ func (a *authController) Logout(ctx *gin.Context) {
 		return
 	}
 
-	ctx.SetCookie("token", "", -1, "", "", false, true)
+	setAuthCookie(ctx, "", -1)
 	ctx.JSON(200, gin.H{"message": "Logged out successfully"})
 }

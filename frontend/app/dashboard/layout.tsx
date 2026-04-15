@@ -17,9 +17,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!isAuthenticated && !isLoading) {
-      router.push("/login");
+      router.replace("/login");
     }
-  }, [isAuthenticated, isLoading]);
+  }, [isAuthenticated, isLoading, router]);
   if (isLoading || !isAuthenticated)
     return (
       <div className="h-screen flex items-center justify-center bg-slate-900">

@@ -1,22 +1,19 @@
 services:
   api:
     build:
-      context: ./api
+      context: ./
       dockerfile: Dockerfile
     ports:
       - "8080:8080"
     volumes:
-      - ./api:/app
-      - ./api/assets:/app/assets 
+      - ./:/app
+      - ./assets:/app/assets 
     depends_on:
       - postgres
     env_file:
-      - ./api/.env
+      - ./.env
     environment:
       - DB_SOURCE=postgresql://url:url@postgres:5432/postgres?sslmode=disable
-    dns:
-      - 8.8.8.8
-      - 1.1.1.1
 
   postgres:
     image: postgres:15
@@ -27,8 +24,8 @@ services:
     ports:
       - "5432:5432"
     volumes:
+      - ./db/schema/schema.sql:/docker-entrypoint-initdb.d/001_schema.sql:ro
       - postgres_data:/var/lib/postgresql/data
-    # command: ["postgres", "-c", "log_statement=all"]
 volumes:
   postgres_data:
   

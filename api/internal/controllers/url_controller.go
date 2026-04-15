@@ -192,7 +192,7 @@ func (c *URLController) RedirectToOriginalURL(ctx *gin.Context) {
 	if url.PasswordHash.Valid && url.PasswordHash.String != "" {
 		if password == "" {
 
-			ctx.Redirect(http.StatusTemporaryRedirect, "https://uhxnpmnnw4r7.share.zrok.io/redirect/"+shortcode)
+			ctx.Redirect(http.StatusTemporaryRedirect, configs.GetAPIURL()+"/redirect/"+shortcode)
 			return
 		}
 
