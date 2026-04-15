@@ -3,26 +3,41 @@ services:
     build:
       context: ./
       dockerfile: Dockerfile
+      target: dev
     ports:
       - "8080:8080"
     volumes:
       - ./:/app
       - ./assets:/app/assets 
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     env_file:
       - ./.env
     environment:
       - DB_SOURCE=postgresql://url:url@postgres:5432/postgres?sslmode=disable
+      - PGHOST=postgres
+      - PGPORT=5432
+      - PGUSER=url
+      - PGPASSWORD=url
+      - PGDATABASE=postgres
+    command: ["sh", "./scripts/dev-start.sh"]
 
   postgres:
     image: postgres:15
     environment:
       POSTGRES_USER: url
       POSTGRES_PASSWORD: url
+      POSTGRES_DB: postgres
       POSTGRES_HOST_AUTH_METHOD: trust 
     ports:
       - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U url -d postgres"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
     volumes:
       - ./db/schema/schema.sql:/docker-entrypoint-initdb.d/001_schema.sql:ro
       - postgres_data:/var/lib/postgresql/data

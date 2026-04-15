@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
-const backendBaseUrl = process.env.BACKEND_BASE_URL || "http://localhost:8080";
+const backendBaseUrl =
+  process.env.NEXT_PUBLIC_BACKEND_BASE_URL ||
+  process.env.BACKEND_BASE_URL ||
+  "http://localhost:8080";
 
 const nextConfig: NextConfig = {
   webpack(config) {

@@ -3,6 +3,7 @@ package routes
 import (
 	"database/sql"
 
+	"api/configs"
 	"api/internal/controllers"
 	"api/internal/db"
 	"api/internal/errors"
@@ -24,7 +25,7 @@ func SetupRouter(store *db.Queries, conn *sql.DB) *gin.Engine {
 	})
 
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:3000", "https://dhruvakushwaha.in"},
+		AllowOrigins:     configs.GetAllowedOrigins(),
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length", "Content-Disposition"},
