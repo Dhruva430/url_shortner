@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { LinkData } from "@/features/links/types";
 import { saveAs } from "file-saver";
+import { backendUrl } from "@/lib/backend-url";
 type Props = {
   link: LinkData;
   open: boolean;
@@ -13,7 +14,7 @@ type Props = {
 
 export default function QrDialog({ open, onClose, link }: Props) {
   const shortcode = link?.short_url?.split("/")?.filter(Boolean).pop();
-  const url = `/api/protected/shorten/qr/${shortcode}`;
+  const url = backendUrl(`/api/protected/shorten/qr/${shortcode}`);
 
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -69,6 +70,6 @@ export default function QrDialog({ open, onClose, link }: Props) {
         </div>
       </div>
     </div>,
-    document.body
+    document.body,
   );
 }

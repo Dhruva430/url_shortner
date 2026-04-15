@@ -1,5 +1,7 @@
 import type { NextConfig } from "next";
 
+const backendBaseUrl = process.env.BACKEND_BASE_URL || "http://localhost:8080";
+
 const nextConfig: NextConfig = {
   webpack(config) {
     const fileLoaderRule = config.module.rules.find((rule: any) =>
@@ -38,11 +40,11 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/api/:path*",
-        destination: "https://dhruvakushwaha.in/api/:path*", // this tells Next.js to proxy to Go backend
+        destination: `${backendBaseUrl}/api/:path*`,
       },
       {
         source: "/s/:path*",
-        destination: "https://dhruvakushwaha.in/s/:path*", // proxy to protected routes
+        destination: `${backendBaseUrl}/s/:path*`,
       },
     ];
   },

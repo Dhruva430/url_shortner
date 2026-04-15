@@ -11,6 +11,7 @@ import LoginForm from "@/features/auth/components/loginForm";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useAuth } from "@/features/auth/hooks/authProvider";
+import { backendUrl } from "@/lib/backend-url";
 
 export default function Login() {
   const router = useRouter();
@@ -59,7 +60,9 @@ export default function Login() {
 
           {/* Google Login */}
           <button
-            onClick={() => router.push("/api/auth/google")}
+            onClick={() => {
+              window.location.href = backendUrl("/api/auth/google");
+            }}
             className="w-full p-3 sm:p-4 flex justify-center items-center gap-2 sm:gap-3 bg-black hover:bg-gray-800 transition-all duration-200 rounded-lg mb-4 sm:mb-6 cursor-pointer border border-gray-700 hover:border-gray-600 transform hover:scale-[1.02] active:scale-[0.98]"
           >
             <GoogleIcon className="w-4 h-4 sm:w-5 sm:h-5" />

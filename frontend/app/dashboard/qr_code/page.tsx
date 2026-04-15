@@ -8,6 +8,7 @@ import Input from "@/components/input";
 import { cn } from "@/lib/utils";
 import ColorPicker from "@/components/colorPicker";
 import saveAs from "file-saver";
+import { backendUrl } from "@/lib/backend-url";
 
 type FormFields = {
   url: string;
@@ -40,10 +41,7 @@ const QRCode: React.FC = () => {
         return;
       }
 
-      const newURL = new URL(
-        "/api/protected/shorten/qr-with-logo",
-        window.location.origin
-      );
+      const newURL = new URL(backendUrl("/api/protected/shorten/qr-with-logo"));
       newURL.search = "";
       newURL.searchParams.set("url", watched.url);
       newURL.searchParams.set("bg_color", watched.bg_color);

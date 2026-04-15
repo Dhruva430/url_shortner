@@ -11,6 +11,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import SuccessNotification from "@/components/successNotification";
+import { backendUrl } from "@/lib/backend-url";
 
 export default function Register() {
   const router = useRouter();
@@ -33,7 +34,9 @@ export default function Register() {
 
           {/* Google Login Button */}
           <button
-            onClick={() => router.push("/api/auth/google")}
+            onClick={() => {
+              window.location.href = backendUrl("/api/auth/google");
+            }}
             className="w-full p-3 sm:p-4 flex justify-center items-center gap-2 bg-black hover:bg-gray-500 transition-colors rounded-lg mb-6 cursor-pointer text-sm sm:text-base"
           >
             <GoogleIcon className="size-4 sm:size-5" />

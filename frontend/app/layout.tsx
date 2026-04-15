@@ -4,6 +4,7 @@ import "./globals.css";
 import QueryProvider from "./providers/queryProvider";
 import { AuthProvider } from "@/features/auth/hooks/authProvider";
 import { PremiumProvider } from "@/features/auth/hooks/premiumProvider";
+import ApiRequestRouter from "@/components/api-request-router";
 const exo = Exo({
   variable: "--font-exo",
   subsets: ["latin"],
@@ -24,6 +25,7 @@ export default function RootLayout({
     <html lang="en" className={exo.variable}>
       <body className="bg-background text-foreground antialiased">
         <QueryProvider>
+          <ApiRequestRouter />
           <AuthProvider>
             <PremiumProvider>{children}</PremiumProvider>
           </AuthProvider>
