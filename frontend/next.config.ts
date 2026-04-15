@@ -1,10 +1,5 @@
 import type { NextConfig } from "next";
 
-const backendBaseUrl =
-  process.env.NEXT_PUBLIC_BACKEND_BASE_URL ||
-  process.env.BACKEND_BASE_URL ||
-  "http://localhost:8080";
-
 const nextConfig: NextConfig = {
   webpack(config) {
     const fileLoaderRule = config.module.rules.find((rule: any) =>
@@ -37,19 +32,6 @@ const nextConfig: NextConfig = {
         as: "*.js",
       },
     },
-  },
-
-  async rewrites() {
-    return [
-      {
-        source: "/api/:path*",
-        destination: `${backendBaseUrl}/api/:path*`,
-      },
-      {
-        source: "/s/:path*",
-        destination: `${backendBaseUrl}/s/:path*`,
-      },
-    ];
   },
 };
 
