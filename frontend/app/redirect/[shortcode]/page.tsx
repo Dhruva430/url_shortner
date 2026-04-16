@@ -19,7 +19,7 @@ export default function RedirectWithPassword() {
     setError("");
 
     try {
-      const res = await fetch(`/s/${shortcode}/unlock`, {
+      const res = await fetch(`/api/s/${shortcode}/unlock`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

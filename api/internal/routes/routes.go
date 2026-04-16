@@ -48,6 +48,8 @@ func SetupRouter(store *db.Queries, conn *sql.DB) *gin.Engine {
 
 	routerAPI.GET("/auth/:provider/callback", authController.ProviderCallback)
 	routerAPI.GET("/auth/:provider", authController.ProviderRedirect)
+	routerAPI.GET("/s/:shortcode", URLController.RedirectToOriginalURL)
+	routerAPI.POST("/s/:shortcode/unlock", URLController.VerifyAndRedirect)
 
 	protected := routerAPI.Group("/protected")
 
