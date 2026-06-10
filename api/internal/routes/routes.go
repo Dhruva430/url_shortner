@@ -2,6 +2,7 @@ package routes
 
 import (
 	"database/sql"
+	"time"
 
 	"api/configs"
 	"api/internal/controllers"
@@ -41,7 +42,7 @@ func SetupRouter(store *db.Queries, conn *sql.DB) *gin.Engine {
 	routerAPI := router.Group("/api")
 
 	routerAPI.POST("/register", authController.Register)
-	routerAPI.POST("/login", authController.Login)
+	routerAPI.POST("/login", middleware.RateLimit(5, time.Minute), authController.Login)
 	routerAPI.GET("/logout", authController.Logout)
 	routerAPI.GET("/check-username", authController.CheckUsername)
 	routerAPI.GET("/check-email", authController.CheckEmail)
