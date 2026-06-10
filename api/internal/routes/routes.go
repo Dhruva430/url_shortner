@@ -49,8 +49,9 @@ func SetupRouter(store *db.Queries, conn *sql.DB) *gin.Engine {
 
 	routerAPI.GET("/auth/:provider/callback", authController.ProviderCallback)
 	routerAPI.GET("/auth/:provider", authController.ProviderRedirect)
+	unlockLimiter := middleware.RateLimit(10, time.Minute)
 	routerAPI.GET("/s/:shortcode", URLController.RedirectToOriginalURL)
-	routerAPI.POST("/s/:shortcode/unlock", URLController.VerifyAndRedirect)
+	routerAPI.POST("/s/:shortcode/unlock", unlockLimiter, URLController.VerifyAndRedirect)
 
 	protected := routerAPI.Group("/protected")
 
@@ -98,7 +99,7 @@ func SetupRouter(store *db.Queries, conn *sql.DB) *gin.Engine {
 		})
 	})
 	router.GET("/s/:shortcode", URLController.RedirectToOriginalURL)
-	router.POST("/s/:shortcode/unlock", URLController.VerifyAndRedirect)
+	router.POST("/s/:shortcode/unlock", unlockLimiter, URLController.VerifyAndRedirect)
 
 	return r
 }
