@@ -35,25 +35,32 @@ func newRateLimiter(limit int, window time.Duration) *rateLimiter {
 	return rl
 }
 
-// allow reports whether the given key may make another request, along with the
-// number of seconds until the current window resets.
-func (rl *rateLimiter) allow(key string, now time.Time) (bool, int) {
+// decision is the outcome of a rate-limit check for a single request.
+type decision struct {
+	allowed    bool
+	remaining  int // requests still permitted in the current window
+	retryAfter int // seconds until the current window resets
+}
+
+// allow reports whether the given key may make another request and returns the
+// quota metadata needed to populate the rate-limit response headers.
+func (rl *rateLimiter) allow(key string, now time.Time) decision {
 	rl.mu.Lock()
 	defer rl.mu.Unlock()
 
 	v, ok := rl.visitors[key]
 	if !ok || now.Sub(v.windowStart) >= rl.window {
 		rl.visitors[key] = &visitor{count: 1, windowStart: now}
-		return true, int(rl.window.Seconds())
+		return decision{allowed: true, remaining: rl.limit - 1, retryAfter: int(rl.window.Seconds())}
 	}
 
 	retryAfter := max(int(rl.window.Seconds()-now.Sub(v.windowStart).Seconds()), 1)
 	if v.count >= rl.limit {
-		return false, retryAfter
+		return decision{allowed: false, remaining: 0, retryAfter: retryAfter}
 	}
 
 	v.count++
-	return true, retryAfter
+	return decision{allowed: true, remaining: rl.limit - v.count, retryAfter: retryAfter}
 }
 
 // cleanupLoop periodically evicts visitors whose window has fully elapsed so the
@@ -80,12 +87,18 @@ func RateLimit(limit int, window time.Duration) gin.HandlerFunc {
 
 	return func(ctx *gin.Context) {
 		key := utils.GetIP(ctx)
-		allowed, retryAfter := rl.allow(key, time.Now())
-		if !allowed {
-			ctx.Header("Retry-After", strconv.Itoa(retryAfter))
+		d := rl.allow(key, time.Now())
+
+		ctx.Header("X-RateLimit-Limit", strconv.Itoa(limit))
+		ctx.Header("X-RateLimit-Remaining", strconv.Itoa(d.remaining))
+
+		if !d.allowed {
+			// Limit exceeded: tell the client how long to back off and return a
+			// clear 429 Too Many Requests with a machine-readable JSON body.
+			ctx.Header("Retry-After", strconv.Itoa(d.retryAfter))
 			ctx.JSON(http.StatusTooManyRequests, gin.H{
 				"error":       "Too many requests. Please try again later.",
-				"retry_after": retryAfter,
+				"retry_after": d.retryAfter,
 			})
 			ctx.Abort()
 			return
