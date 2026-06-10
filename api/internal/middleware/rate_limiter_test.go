@@ -1,9 +1,47 @@
 package middleware
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
+
+	"github.com/gin-gonic/gin"
 )
+
+func TestRateLimitMiddlewareReturns429(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	r.POST("/login", RateLimit(2, time.Minute), func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"ok": true})
+	})
+
+	do := func() *httptest.ResponseRecorder {
+		req := httptest.NewRequest(http.MethodPost, "/login", nil)
+		req.RemoteAddr = "203.0.113.7:1234"
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+		return w
+	}
+
+	if got := do().Code; got != http.StatusOK {
+		t.Fatalf("request 1: got %d, want 200", got)
+	}
+	if got := do().Code; got != http.StatusOK {
+		t.Fatalf("request 2: got %d, want 200", got)
+	}
+
+	w := do()
+	if w.Code != http.StatusTooManyRequests {
+		t.Fatalf("request 3: got %d, want 429", w.Code)
+	}
+	if w.Header().Get("Retry-After") == "" {
+		t.Fatal("429 response should include a Retry-After header")
+	}
+	if w.Header().Get("X-RateLimit-Remaining") != "0" {
+		t.Fatalf("X-RateLimit-Remaining on 429 = %q, want \"0\"", w.Header().Get("X-RateLimit-Remaining"))
+	}
+}
 
 func TestRateLimiterAllowsUpToLimit(t *testing.T) {
 	rl := &rateLimiter{

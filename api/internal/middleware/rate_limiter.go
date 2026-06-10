@@ -79,6 +79,18 @@ func (rl *rateLimiter) cleanupLoop() {
 	}
 }
 
+// respondTooManyRequests aborts the request with a clear HTTP 429 Too Many
+// Requests response: it sets the Retry-After header so clients know how long to
+// back off, and returns a machine-readable JSON body describing the error.
+func respondTooManyRequests(ctx *gin.Context, retryAfter int) {
+	ctx.Header("Retry-After", strconv.Itoa(retryAfter))
+	ctx.JSON(http.StatusTooManyRequests, gin.H{
+		"error":       "Too many requests. Please try again later.",
+		"retry_after": retryAfter,
+	})
+	ctx.Abort()
+}
+
 // RateLimit returns a Gin middleware that allows at most `limit` requests per
 // client IP within `window`. When exceeded it responds with 429 Too Many
 // Requests and a Retry-After header.
@@ -93,14 +105,7 @@ func RateLimit(limit int, window time.Duration) gin.HandlerFunc {
 		ctx.Header("X-RateLimit-Remaining", strconv.Itoa(d.remaining))
 
 		if !d.allowed {
-			// Limit exceeded: tell the client how long to back off and return a
-			// clear 429 Too Many Requests with a machine-readable JSON body.
-			ctx.Header("Retry-After", strconv.Itoa(d.retryAfter))
-			ctx.JSON(http.StatusTooManyRequests, gin.H{
-				"error":       "Too many requests. Please try again later.",
-				"retry_after": d.retryAfter,
-			})
-			ctx.Abort()
+			respondTooManyRequests(ctx, d.retryAfter)
 			return
 		}
 		ctx.Next()
