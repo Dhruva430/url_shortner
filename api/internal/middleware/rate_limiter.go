@@ -84,11 +84,11 @@ func (rl *rateLimiter) cleanupLoop() {
 // back off, and returns a machine-readable JSON body describing the error.
 func respondTooManyRequests(ctx *gin.Context, retryAfter int) {
 	ctx.Header("Retry-After", strconv.Itoa(retryAfter))
-	ctx.JSON(http.StatusTooManyRequests, gin.H{
+	ctx.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{
+		"code":        "rate_limited",
 		"error":       "Too many requests. Please try again later.",
 		"retry_after": retryAfter,
 	})
-	ctx.Abort()
 }
 
 // RateLimit returns a Gin middleware that allows at most `limit` requests per

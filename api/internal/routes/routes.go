@@ -41,7 +41,7 @@ func SetupRouter(store *db.Queries, conn *sql.DB) *gin.Engine {
 
 	routerAPI := router.Group("/api")
 
-	routerAPI.POST("/register", authController.Register)
+	routerAPI.POST("/register", middleware.RateLimit(5, time.Minute), authController.Register)
 	routerAPI.POST("/login", middleware.RateLimit(5, time.Minute), authController.Login)
 	routerAPI.GET("/logout", authController.Logout)
 	routerAPI.GET("/check-username", authController.CheckUsername)

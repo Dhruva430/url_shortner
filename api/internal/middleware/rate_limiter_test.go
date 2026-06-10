@@ -3,6 +3,7 @@ package middleware
 import (
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -40,6 +41,9 @@ func TestRateLimitMiddlewareReturns429(t *testing.T) {
 	}
 	if w.Header().Get("X-RateLimit-Remaining") != "0" {
 		t.Fatalf("X-RateLimit-Remaining on 429 = %q, want \"0\"", w.Header().Get("X-RateLimit-Remaining"))
+	}
+	if body := w.Body.String(); !strings.Contains(body, `"code":"rate_limited"`) {
+		t.Fatalf("429 body should carry the rate_limited code, got %s", body)
 	}
 }
 
